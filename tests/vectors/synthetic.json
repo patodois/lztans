@@ -1,0 +1,542 @@
+[
+ {
+  "id": "syn-stored-block",
+  "file": "syn-stored-block.bin",
+  "decompressed_size": 1000,
+  "sha256": "5f32d793b7dd5099627f5c9df975c34e58d8a2663c8072ac154f156eb36a6967",
+  "note": "stored block (byte0 bit 6), 1000 bytes, Kraken id"
+ },
+ {
+  "id": "syn-stored-then-memset",
+  "file": "syn-stored-then-memset.bin",
+  "decompressed_size": 302144,
+  "sha256": "8d1940e450decb4897a0b8ccb3ad61c4815178ac3e1e9798dc550df8a5992ae0",
+  "note": "stored block with restart bit, then a memset quantum block without restart (partial last block)"
+ },
+ {
+  "id": "syn-two-entropy-subchunks",
+  "file": "syn-two-entropy-subchunks.bin",
+  "decompressed_size": 500,
+  "sha256": "fddd46ae97487d46ba2579abcefbb19acc3c5f828627912a8f54aebdea001363",
+  "note": "one quantum, one entropy-only sub-chunk holding a stored array"
+ },
+ {
+  "id": "syn-stored-subchunk",
+  "file": "syn-stored-subchunk.bin",
+  "decompressed_size": 777,
+  "sha256": "86be3bfe5d31dc4bd08272477bca8aa428593ce9de1a8e673606f0a718573b77",
+  "note": "stored sub-chunk (LZ flag set, size == output size, mode 0)"
+ },
+ {
+  "id": "syn-huff-old-dense-k0-two",
+  "file": "syn-huff-old-dense-k0-two.bin",
+  "decompressed_size": 602,
+  "sha256": "2e467dc8c7e86e8bb2c8c099884005f915798a3cb03f97d8c5f7aef8b8206194",
+  "note": "old dense Huffman description, k=0, 2 symbols, symbol 0 unused"
+ },
+ {
+  "id": "syn-huff-old-dense-k0-forty",
+  "file": "syn-huff-old-dense-k0-forty.bin",
+  "decompressed_size": 640,
+  "sha256": "c02428e0d2f41c4432d2e0d4b5fc3138dad639bf9c1150b9ca1c20a70a84a2db",
+  "note": "old dense Huffman description, k=0, 40 symbols, symbol 0 unused"
+ },
+ {
+  "id": "syn-huff-old-dense-k0-ninetyseven",
+  "file": "syn-huff-old-dense-k0-ninetyseven.bin",
+  "decompressed_size": 697,
+  "sha256": "e9d1a204a05c416ba496b04c16efe8ef4f1f28e643bada538fe6c71b5afa3677",
+  "note": "old dense Huffman description, k=0, 97 symbols, symbol 0 unused"
+ },
+ {
+  "id": "syn-huff-old-dense-k1-two",
+  "file": "syn-huff-old-dense-k1-two.bin",
+  "decompressed_size": 602,
+  "sha256": "05cbc04c8c97b03aa5c6dfeb3da97c27a2b13cdbbb0e8b245216e0e00957c767",
+  "note": "old dense Huffman description, k=1, 2 symbols, symbol 0 unused"
+ },
+ {
+  "id": "syn-huff-old-dense-k1-forty",
+  "file": "syn-huff-old-dense-k1-forty.bin",
+  "decompressed_size": 640,
+  "sha256": "95cdd4cf33c12e81050f8c5131027960e1711602f057f96892eb012700d0f7d9",
+  "note": "old dense Huffman description, k=1, 40 symbols, symbol 0 unused"
+ },
+ {
+  "id": "syn-huff-old-dense-k1-ninetyseven",
+  "file": "syn-huff-old-dense-k1-ninetyseven.bin",
+  "decompressed_size": 697,
+  "sha256": "149ada3d5173452954a997c0924c836ec895700933c42ece94860fab5db0c3e9",
+  "note": "old dense Huffman description, k=1, 97 symbols, symbol 0 unused"
+ },
+ {
+  "id": "syn-huff-old-dense-k2-two",
+  "file": "syn-huff-old-dense-k2-two.bin",
+  "decompressed_size": 602,
+  "sha256": "77ca7aa5c0bbfd8a1ff57411dc9d3fd7e67fdb080916a026be04bc0e41561709",
+  "note": "old dense Huffman description, k=2, 2 symbols, symbol 0 unused"
+ },
+ {
+  "id": "syn-huff-old-dense-k2-forty",
+  "file": "syn-huff-old-dense-k2-forty.bin",
+  "decompressed_size": 640,
+  "sha256": "a120463a25537e1e5bc806244648fedbe8cf13f405067edfbea42676eb1d3bf9",
+  "note": "old dense Huffman description, k=2, 40 symbols, symbol 0 unused"
+ },
+ {
+  "id": "syn-huff-old-dense-k2-ninetyseven",
+  "file": "syn-huff-old-dense-k2-ninetyseven.bin",
+  "decompressed_size": 697,
+  "sha256": "c14d15e047ec50337ce25aa875283d7198a2f708aab1ad7af6ac1ebb21e55442",
+  "note": "old dense Huffman description, k=2, 97 symbols, symbol 0 unused"
+ },
+ {
+  "id": "syn-huff-old-dense-k3-two",
+  "file": "syn-huff-old-dense-k3-two.bin",
+  "decompressed_size": 602,
+  "sha256": "7a5eabf895294e611f8f8c5c900d226ef37c0e68f206fd20f6892d9814ae4065",
+  "note": "old dense Huffman description, k=3, 2 symbols, symbol 0 unused"
+ },
+ {
+  "id": "syn-huff-old-dense-k3-forty",
+  "file": "syn-huff-old-dense-k3-forty.bin",
+  "decompressed_size": 640,
+  "sha256": "ea056549ec8785cd4a80bf49634d9b780b9604ed1ecad6010d135f6cc7027533",
+  "note": "old dense Huffman description, k=3, 40 symbols, symbol 0 unused"
+ },
+ {
+  "id": "syn-huff-old-dense-k3-ninetyseven",
+  "file": "syn-huff-old-dense-k3-ninetyseven.bin",
+  "decompressed_size": 697,
+  "sha256": "f97b858fa720132b5616dd30a83110ab028db504dbfa5f1b371297d60b5de801",
+  "note": "old dense Huffman description, k=3, 97 symbols, symbol 0 coded (skip bit set)"
+ },
+ {
+  "id": "syn-huff-old-sparse-sorted",
+  "file": "syn-huff-old-sparse-sorted.bin",
+  "decompressed_size": 400,
+  "sha256": "f5994ae3f2dcf2fa43fbd2ba3d366126ad783339c64d603d2fc7f40cd202a3e1",
+  "note": "old sparse Huffman description, 6 symbols, listed sorted"
+ },
+ {
+  "id": "syn-huff-old-sparse-unsorted",
+  "file": "syn-huff-old-sparse-unsorted.bin",
+  "decompressed_size": 400,
+  "sha256": "38faf055563f3e76c0306c3d7c9fbc0340cd181ca88fae91f54c58164b47dbc4",
+  "note": "old sparse Huffman description, 9 symbols, listed in stream order (unsorted)"
+ },
+ {
+  "id": "syn-huff-old-sparse-sixteen",
+  "file": "syn-huff-old-sparse-sixteen.bin",
+  "decompressed_size": 400,
+  "sha256": "0b3aade03ece6eeea434674049b20f09f4ff77d41aa21f8977a20f0f1522acbe",
+  "note": "old sparse Huffman description, 16 symbols, listed in stream order (unsorted)"
+ },
+ {
+  "id": "syn-huff-old-sparse-two",
+  "file": "syn-huff-old-sparse-two.bin",
+  "decompressed_size": 400,
+  "sha256": "4cb29038ceaaf52dd17886a7b31607b5d65511527dc224f72bceb0cfd792c8b3",
+  "note": "old sparse Huffman description, 2 symbols, listed in stream order (unsorted)"
+ },
+ {
+  "id": "syn-huff-single-symbol",
+  "file": "syn-huff-single-symbol.bin",
+  "decompressed_size": 300,
+  "sha256": null,
+  "oracle_error": "error: OozError",
+  "note": "single-symbol old sparse description (behaviour of the reference is not part of the spec)"
+ },
+ {
+  "id": "syn-huff-new-k0-ns2",
+  "file": "syn-huff-new-k0-ns2.bin",
+  "decompressed_size": 3040,
+  "sha256": "5e5c4db809be7b96e7133e0b405491156e4494029202dae6eba050c4d3b8a53a",
+  "note": "new Huffman code description, k=0, 2 coded symbols in 1 runs"
+ },
+ {
+  "id": "syn-huff-new-k0-ns5",
+  "file": "syn-huff-new-k0-ns5.bin",
+  "decompressed_size": 3100,
+  "sha256": "4012c7587cfc6a645132fd8fa48a7c2aca16bd9e58dd54df131050177d9bb70e",
+  "note": "new Huffman code description, k=0, 5 coded symbols in 2 runs"
+ },
+ {
+  "id": "syn-huff-new-k0-ns30",
+  "file": "syn-huff-new-k0-ns30.bin",
+  "decompressed_size": 3600,
+  "sha256": "dc2e4cc0b03ec49b959f90f1c90b36d7c03e4f5900fa331d0d5125fcaec712a7",
+  "note": "new Huffman code description, k=0, 30 coded symbols in 5 runs"
+ },
+ {
+  "id": "syn-huff-new-k0-ns120",
+  "file": "syn-huff-new-k0-ns120.bin",
+  "decompressed_size": 5400,
+  "sha256": "371979dbb46232d9fcdd20dcb50889476cd8e0bc0ea1ed477096530e30010aaf",
+  "note": "new Huffman code description, k=0, 120 coded symbols in 54 runs"
+ },
+ {
+  "id": "syn-huff-new-k0-ns200",
+  "file": "syn-huff-new-k0-ns200.bin",
+  "decompressed_size": 7000,
+  "sha256": "fa5d9aa156acf135eb6c7758dee795e0b8bfe8f6d476fabcd9c3646fe14cfd76",
+  "note": "new Huffman code description, k=0, 200 coded symbols in 49 runs"
+ },
+ {
+  "id": "syn-huff-new-k0-ns255",
+  "file": "syn-huff-new-k0-ns255.bin",
+  "decompressed_size": 8100,
+  "sha256": "a6e712ef2fcefc32af9595d2cdf33a0528de2264407bbc2ff259e46387388832",
+  "note": "new Huffman code description, k=0, 255 coded symbols in 2 runs"
+ },
+ {
+  "id": "syn-huff-new-k0-ns256",
+  "file": "syn-huff-new-k0-ns256.bin",
+  "decompressed_size": 8120,
+  "sha256": "c8b517a6c67ab669e8745dd23d5befe12def24000722797c3ea56ed420692993",
+  "note": "new Huffman code description, k=0, 256 coded symbols in 1 runs"
+ },
+ {
+  "id": "syn-huff-new-k1-ns2",
+  "file": "syn-huff-new-k1-ns2.bin",
+  "decompressed_size": 3040,
+  "sha256": "a23acf42c49090e20e7ed57ced8f78cd29e0515b4bb3b09dfacc64d80e8847eb",
+  "note": "new Huffman code description, k=1, 2 coded symbols in 1 runs"
+ },
+ {
+  "id": "syn-huff-new-k1-ns5",
+  "file": "syn-huff-new-k1-ns5.bin",
+  "decompressed_size": 3100,
+  "sha256": "f3f5a295eb8b53fecddb8a307a31648e387ef918a4883a33b27bcab845e44efd",
+  "note": "new Huffman code description, k=1, 5 coded symbols in 1 runs"
+ },
+ {
+  "id": "syn-huff-new-k1-ns30",
+  "file": "syn-huff-new-k1-ns30.bin",
+  "decompressed_size": 3600,
+  "sha256": "c885a97578e19e50ee45e2452b8e197a0c25bdaad450915a01b0f2d8db7734d3",
+  "note": "new Huffman code description, k=1, 30 coded symbols in 5 runs"
+ },
+ {
+  "id": "syn-huff-new-k1-ns120",
+  "file": "syn-huff-new-k1-ns120.bin",
+  "decompressed_size": 5400,
+  "sha256": "4a64e322859d5dc8719556bb51176d8a51f3160c1febcca100d299dc8ab48071",
+  "note": "new Huffman code description, k=1, 120 coded symbols in 65 runs"
+ },
+ {
+  "id": "syn-huff-new-k1-ns200",
+  "file": "syn-huff-new-k1-ns200.bin",
+  "decompressed_size": 7000,
+  "sha256": "a2e2f71b733061fee77966524fb0e4e9e656b4de2df0a56c35b8fb227f134e81",
+  "note": "new Huffman code description, k=1, 200 coded symbols in 47 runs"
+ },
+ {
+  "id": "syn-huff-new-k1-ns255",
+  "file": "syn-huff-new-k1-ns255.bin",
+  "decompressed_size": 8100,
+  "sha256": "e82e9d1a98ee3e5e9914e02f5c48f8b86e96d370b2cb45e159260aafea521b86",
+  "note": "new Huffman code description, k=1, 255 coded symbols in 2 runs"
+ },
+ {
+  "id": "syn-huff-new-k1-ns256",
+  "file": "syn-huff-new-k1-ns256.bin",
+  "decompressed_size": 8120,
+  "sha256": "8d908218a52fad66d5f6bc141c44bdf587bcd33a5eb5e3ced98a3e78995f97d3",
+  "note": "new Huffman code description, k=1, 256 coded symbols in 1 runs"
+ },
+ {
+  "id": "syn-huff-new-k2-ns2",
+  "file": "syn-huff-new-k2-ns2.bin",
+  "decompressed_size": 3040,
+  "sha256": "12d3898dbb8329a4d5408f6a5d56bb562e8907bc8fd798fe54e71f227cabf182",
+  "note": "new Huffman code description, k=2, 2 coded symbols in 1 runs"
+ },
+ {
+  "id": "syn-huff-new-k2-ns5",
+  "file": "syn-huff-new-k2-ns5.bin",
+  "decompressed_size": 3100,
+  "sha256": "23cad566e46f4bb749bf885094e991659d798bf553aaff35eac84d151b3a8fa9",
+  "note": "new Huffman code description, k=2, 5 coded symbols in 1 runs"
+ },
+ {
+  "id": "syn-huff-new-k2-ns30",
+  "file": "syn-huff-new-k2-ns30.bin",
+  "decompressed_size": 3600,
+  "sha256": "f648937cd6a0131b1b4ac219946992d6f4ff9f5b13126be29aea62e382ac450b",
+  "note": "new Huffman code description, k=2, 30 coded symbols in 7 runs"
+ },
+ {
+  "id": "syn-huff-new-k2-ns120",
+  "file": "syn-huff-new-k2-ns120.bin",
+  "decompressed_size": 5400,
+  "sha256": "1383c7dc0fa97e170c1009baa863c948049ae8dca530f1c82b68ff571248fe1f",
+  "note": "new Huffman code description, k=2, 120 coded symbols in 57 runs"
+ },
+ {
+  "id": "syn-huff-new-k2-ns200",
+  "file": "syn-huff-new-k2-ns200.bin",
+  "decompressed_size": 7000,
+  "sha256": "1169da402c0fa1ba94e621a9df3a187385747a82e486e91843504a2c2ef50cdb",
+  "note": "new Huffman code description, k=2, 200 coded symbols in 45 runs"
+ },
+ {
+  "id": "syn-huff-new-k2-ns255",
+  "file": "syn-huff-new-k2-ns255.bin",
+  "decompressed_size": 8100,
+  "sha256": "405c84d71e78efe9e7b45aaeb6943089dfccc0e90bcd1b2ce65bec22ccb9345d",
+  "note": "new Huffman code description, k=2, 255 coded symbols in 2 runs"
+ },
+ {
+  "id": "syn-huff-new-k3-ns2",
+  "file": "syn-huff-new-k3-ns2.bin",
+  "decompressed_size": 3040,
+  "sha256": "e84788f4bbe90d14f71f54f62f0594d9eacfad350005a5692b7910585fc46383",
+  "note": "new Huffman code description, k=3, 2 coded symbols in 1 runs"
+ },
+ {
+  "id": "syn-huff-new-k3-ns5",
+  "file": "syn-huff-new-k3-ns5.bin",
+  "decompressed_size": 3100,
+  "sha256": "86a0f4f673f14259090762077a7384c4184a9cdf3d2ee83a1aaa2c8628addf4d",
+  "note": "new Huffman code description, k=3, 5 coded symbols in 1 runs"
+ },
+ {
+  "id": "syn-huff-new-k3-ns30",
+  "file": "syn-huff-new-k3-ns30.bin",
+  "decompressed_size": 3600,
+  "sha256": "ed8f1a717b0f1d0fdef6ce48a8cfed1ab7fa0f1b36cc6d9e7cedac170b2a51b5",
+  "note": "new Huffman code description, k=3, 30 coded symbols in 4 runs"
+ },
+ {
+  "id": "syn-huff-new-k3-ns120",
+  "file": "syn-huff-new-k3-ns120.bin",
+  "decompressed_size": 5400,
+  "sha256": "b497d9a4ccb40969e7ed79b247883ecc9ffd4913494e712c987259fb7e0b1c06",
+  "note": "new Huffman code description, k=3, 120 coded symbols in 67 runs"
+ },
+ {
+  "id": "syn-huff-new-k3-ns200",
+  "file": "syn-huff-new-k3-ns200.bin",
+  "decompressed_size": 7000,
+  "sha256": "854f784a64938f7e4a5ee7b4293ddc2fe6caf5e26e83c436baaa95108cfad571",
+  "note": "new Huffman code description, k=3, 200 coded symbols in 46 runs"
+ },
+ {
+  "id": "syn-huff-new-k3-ns255",
+  "file": "syn-huff-new-k3-ns255.bin",
+  "decompressed_size": 8100,
+  "sha256": "e73858d1ed01b8fe24efadfdbe14502d2268b3f0181271deaefd0037758fdaaa",
+  "note": "new Huffman code description, k=3, 255 coded symbols in 2 runs"
+ },
+ {
+  "id": "syn-huff-new-k3-ns256",
+  "file": "syn-huff-new-k3-ns256.bin",
+  "decompressed_size": 8120,
+  "sha256": "e26366bda3d4c8a16cf85fd199c9548a16126ff577724282ea49c69019e4eea1",
+  "note": "new Huffman code description, k=3, 256 coded symbols in 1 runs"
+ },
+ {
+  "id": "ex-huff-new-abracadabra",
+  "file": "ex-huff-new-abracadabra.bin",
+  "decompressed_size": 66,
+  "sha256": "308deb2e8a9262f204313621cbae297870e7251d0cd98b8fe647806f75aa1c3f",
+  "note": "worked example: new Huffman description, abracadabra repeated 6 times (spec 10)"
+ },
+ {
+  "id": "syn-kraken-m0-scale0",
+  "file": "syn-kraken-m0-scale0.bin",
+  "decompressed_size": 4000,
+  "sha256": "bb6859b9b0f594c6e56ea15b5db51f18aadea2b7264aa717bd7900b0b4b9aa8b",
+  "note": "Kraken LZ sub-chunk, mode 0, classic offsets, random commands"
+ },
+ {
+  "id": "syn-kraken-m0-scale1",
+  "file": "syn-kraken-m0-scale1.bin",
+  "decompressed_size": 4000,
+  "sha256": "a736c6bcfa9cc893fa62b063f247aac92e271333178d230def175a83b9eed37e",
+  "note": "Kraken LZ sub-chunk, mode 0, scaled s=1 offsets, random commands"
+ },
+ {
+  "id": "syn-kraken-m0-scale3",
+  "file": "syn-kraken-m0-scale3.bin",
+  "decompressed_size": 4000,
+  "sha256": "35ca89fb3b179028b5413a047273da5dd22066d8b90371503b65bdc96280bd56",
+  "note": "Kraken LZ sub-chunk, mode 0, scaled s=3 offsets, random commands"
+ },
+ {
+  "id": "syn-kraken-m0-scale40",
+  "file": "syn-kraken-m0-scale40.bin",
+  "decompressed_size": 4000,
+  "sha256": "6199d6a04aa7475b25c0768298eee19623628a5249843ff64d4df357b0532b32",
+  "note": "Kraken LZ sub-chunk, mode 0, scaled s=40 offsets, random commands"
+ },
+ {
+  "id": "syn-kraken-m1-scale0",
+  "file": "syn-kraken-m1-scale0.bin",
+  "decompressed_size": 4000,
+  "sha256": "484951c6c50829f08c7a768d0cbed744428f616c5c949cd6b09845fb7374d899",
+  "note": "Kraken LZ sub-chunk, mode 1, classic offsets, random commands"
+ },
+ {
+  "id": "syn-kraken-m1-scale1",
+  "file": "syn-kraken-m1-scale1.bin",
+  "decompressed_size": 4000,
+  "sha256": "720a76bd0792cc2506f7b6f25fe1c6e6903067bb5705497b63dadbf4f3f5ba32",
+  "note": "Kraken LZ sub-chunk, mode 1, scaled s=1 offsets, random commands"
+ },
+ {
+  "id": "syn-kraken-m1-scale3",
+  "file": "syn-kraken-m1-scale3.bin",
+  "decompressed_size": 4000,
+  "sha256": "4f1a0a06173b0d57191c2ada7c45382d01a3153cf27c685e8a410330eae318d2",
+  "note": "Kraken LZ sub-chunk, mode 1, scaled s=3 offsets, random commands"
+ },
+ {
+  "id": "syn-kraken-m1-scale40",
+  "file": "syn-kraken-m1-scale40.bin",
+  "decompressed_size": 4000,
+  "sha256": "1ae4e930031ee680f259348a737213cb7cc7daefd878924a844a8fbf157f905e",
+  "note": "Kraken LZ sub-chunk, mode 1, scaled s=40 offsets, random commands"
+ },
+ {
+  "id": "syn-kraken-far-classic-m0",
+  "file": "syn-kraken-far-classic-m0.bin",
+  "decompressed_size": 8653752,
+  "sha256": "a88b8d47e41a21bb655ffe8512a7a5590467a23b8986b331be885e2bfefbf5a3",
+  "note": "Kraken, classic offset class >= 0xF0 (distance 8.4 MB) reaching into earlier memset blocks (distinct fill value per block)"
+ },
+ {
+  "id": "syn-kraken-far-classic-m1",
+  "file": "syn-kraken-far-classic-m1.bin",
+  "decompressed_size": 8653752,
+  "sha256": "9b11bc6d02a7fd6453f0a99544e478a9b809930fd7e7e5641e2e834e1856809c",
+  "note": "Kraken, classic offset class >= 0xF0 (distance 8.4 MB) reaching into earlier memset blocks (distinct fill value per block)"
+ },
+ {
+  "id": "syn-kraken-far-scaled-s1",
+  "file": "syn-kraken-far-scaled-s1.bin",
+  "decompressed_size": 8653752,
+  "sha256": "437712f8dca7558efb0f53a0935f34e49409218f2abcb0a9a7dd448057df0ed3",
+  "note": "Kraken, scaled offsets s=1, a distance of 8.4 MB"
+ },
+ {
+  "id": "syn-kraken-far-scaled-s7",
+  "file": "syn-kraken-far-scaled-s7.bin",
+  "decompressed_size": 8653752,
+  "sha256": "2a45da41770662078c27a48f1ba37c70f4ffdd0698e80bde5682fe0368460637",
+  "note": "Kraken, scaled offsets s=7, a distance of 8.4 MB"
+ },
+ {
+  "id": "syn-probe-kraken-short-distance-placeholder",
+  "file": "syn-probe-kraken-short-distance-placeholder.bin",
+  "decompressed_size": 600,
+  "sha256": "32d61de38381c7544df4e12d8fb1497d068c35e6c58d126d471810c3004a66e9",
+  "note": "plain scaled-offset stream (control for the distance<8 probe)"
+ },
+ {
+  "id": "syn-leviathan-m0-scale0",
+  "file": "syn-leviathan-m0-scale0.bin",
+  "decompressed_size": 5000,
+  "sha256": "3b58abd7f84ab87c8ebe13573e22b61d0c6ac718f16ddd9d629bd5db64a43f45",
+  "note": "Leviathan LZ sub-chunk, mode 0, classic offsets, random commands"
+ },
+ {
+  "id": "syn-leviathan-m0-scale1",
+  "file": "syn-leviathan-m0-scale1.bin",
+  "decompressed_size": 5000,
+  "sha256": "dfe56cad9d55111ef105be7294293573e4fa0a80a36d2947313f2064c1fa957d",
+  "note": "Leviathan LZ sub-chunk, mode 0, scaled s=1 offsets, random commands"
+ },
+ {
+  "id": "syn-leviathan-m0-scale5",
+  "file": "syn-leviathan-m0-scale5.bin",
+  "decompressed_size": 5000,
+  "sha256": "2600382b1f989e4930e7f83ed58d8ca204c9753f9f8397b399a3829483ff1eef",
+  "note": "Leviathan LZ sub-chunk, mode 0, scaled s=5 offsets, random commands"
+ },
+ {
+  "id": "syn-leviathan-m1-scale0",
+  "file": "syn-leviathan-m1-scale0.bin",
+  "decompressed_size": 5000,
+  "sha256": "ec882ec8e452011bcca0000d3485dd08ade0cb818fd14c6462e9cf9f2c8d1107",
+  "note": "Leviathan LZ sub-chunk, mode 1, classic offsets, random commands"
+ },
+ {
+  "id": "syn-leviathan-m1-scale1",
+  "file": "syn-leviathan-m1-scale1.bin",
+  "decompressed_size": 5000,
+  "sha256": "e30902e31aa0ac8d9f587efb9423332ff34538f58fe24348b4092e1c3adb275a",
+  "note": "Leviathan LZ sub-chunk, mode 1, scaled s=1 offsets, random commands"
+ },
+ {
+  "id": "syn-leviathan-m1-scale5",
+  "file": "syn-leviathan-m1-scale5.bin",
+  "decompressed_size": 5000,
+  "sha256": "9d6e3c62df2194ae131b0037c69afc6f481bd21522d3a4c9781af0670859c1a5",
+  "note": "Leviathan LZ sub-chunk, mode 1, scaled s=5 offsets, random commands"
+ },
+ {
+  "id": "syn-leviathan-far-s0",
+  "file": "syn-leviathan-far-s0.bin",
+  "decompressed_size": 8653752,
+  "sha256": "d522addc1f004eed39b6252f98eedf0bd11dac28c9555ac5c321b7e0372bd9ff",
+  "note": "Leviathan, distance 8.4 MB, classic class >= 0xF0"
+ },
+ {
+  "id": "syn-leviathan-far-s1",
+  "file": "syn-leviathan-far-s1.bin",
+  "decompressed_size": 8653752,
+  "sha256": "f986903383e5bd2f9fbfa049d69fbdd735fb9dd6fca2ab041476b8c51f831307",
+  "note": "Leviathan, distance 8.4 MB, scaled s=1"
+ },
+ {
+  "id": "syn-mermaid-m0-plain",
+  "file": "syn-mermaid-m0-plain.bin",
+  "decompressed_size": 3000,
+  "sha256": "63988271017aa6d282a679c7d118d756043139ab8e0560779d43210d8485e141",
+  "note": "Mermaid LZ sub-chunk, mode 0, near offsets and long commands only"
+ },
+ {
+  "id": "syn-mermaid-m1-plain",
+  "file": "syn-mermaid-m1-plain.bin",
+  "decompressed_size": 3000,
+  "sha256": "195bfa4c1846a002809cc4872ff7eeafa9a869faf8345d71a49524e15966b275",
+  "note": "Mermaid LZ sub-chunk, mode 1, near offsets and long commands only"
+ },
+ {
+  "id": "syn-mermaid-far-m0",
+  "file": "syn-mermaid-far-m0.bin",
+  "decompressed_size": 5245880,
+  "sha256": "a87890e4dd34e7d95243d58105253944e5a1615145cc8fa0cdf953070242860c",
+  "note": "Mermaid with far offsets (3-byte), window position 5.2 MB"
+ },
+ {
+  "id": "syn-mermaid-far-m1",
+  "file": "syn-mermaid-far-m1.bin",
+  "decompressed_size": 5245880,
+  "sha256": "582b27a713d1a378b9578a33afaa5dc287a1b184c11fa4aa31d30f641973d5f2",
+  "note": "Mermaid with far offsets (3-byte), window position 5.2 MB"
+ },
+ {
+  "id": "syn-mermaid-far-ext-m0",
+  "file": "syn-mermaid-far-ext-m0.bin",
+  "decompressed_size": 12848056,
+  "sha256": "0345d34372d7c2e3622568db3740dbc637e5a40c74bf015cdb2599fd2e428548",
+  "note": "Mermaid with far offsets >= 0xC00000 using the extension byte, window position 12.8 MB"
+ },
+ {
+  "id": "syn-mermaid-far-ext-m1",
+  "file": "syn-mermaid-far-ext-m1.bin",
+  "decompressed_size": 12848056,
+  "sha256": "c14562f1dbd67ef415a973d7ab222b3a1af303643da679f6f0cceb67f4d051ad",
+  "note": "Mermaid with far offsets >= 0xC00000 using the extension byte, window position 12.8 MB"
+ },
+ {
+  "id": "ex-kraken-tiny",
+  "file": "ex-kraken-tiny.bin",
+  "decompressed_size": 64,
+  "sha256": "38045ede972e8740b8462142e36e369130e4abc9bfec071f60564adf439e94e1",
+  "note": "worked example: tiny Kraken stream (spec 10)"
+ }
+]

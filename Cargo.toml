@@ -1,0 +1,22 @@
+[package]
+name = "lztans"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+authors = ["patodois"]
+description = "Safe, dependency-free decoder for a family of LZ + Huffman/tANS block-compressed streams (Kraken, Mermaid/Selkie and Leviathan block formats)."
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+keywords = ["decompression", "lz77", "huffman", "ans", "unpacker"]
+categories = ["compression"]
+publish = false
+
+[dependencies]
+
+[dev-dependencies]
+sha2 = "0.10"
+
+[profile.release]
+debug = false
+lto = true
+codegen-units = 1
