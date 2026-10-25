@@ -20,6 +20,8 @@ pub(crate) fn decode_multi(
     if b & 0x80 == 0 {
         return corrupt("multi-array: count byte without bit 7");
     }
+    // SPEC-QUESTION: `limit` bounds the total size of the source arrays; the
+    // spec states no call-site limit for containers (QUESTIONS.md, item 9).
     let n_in = usize::from(b & 0x3F);
     let mut pos = 1usize;
     if n_in == 0 {

@@ -24,6 +24,13 @@ impl Place {
     }
 }
 
+/// Window start and the exclusive upper bound a literal run may reach.
+#[derive(Clone, Copy)]
+pub(crate) struct Win {
+    pub base: usize,
+    pub limit: usize,
+}
+
 /// Offsets and lengths decoded from the two bit streams.
 pub(crate) struct SideStreams {
     /// Match distances (positive).
@@ -175,7 +182,16 @@ pub(crate) fn copy_match(
         return corrupt("overlapping match with distance below 8");
     }
     if dist >= len {
-        out.copy_within(p - dist..p - dist + len, p);
+        if len <= 16 {
+            // Short copies are common; a plain loop beats a library call.
+            let (head, tail) = out.split_at_mut(p);
+            let src = &head[p - dist..p - dist + len];
+            for (d, s) in tail[..len].iter_mut().zip(src) {
+                *d = *s;
+            }
+        } else {
+            out.copy_within(p - dist..p - dist + len, p);
+        }
     } else {
         let mut done = 0usize;
         let src = p - dist;
@@ -215,16 +231,15 @@ pub(crate) fn copy_delta(
     cur: &mut usize,
     n: usize,
     dist: usize,
-    pl: &Place,
-    limit: usize,
+    win: Win,
 ) -> Result<()> {
     if n == 0 {
         return Ok(());
     }
-    if n > limit - p || n > lit.len() - *cur {
+    if n > win.limit - p || n > lit.len() - *cur {
         return corrupt("literal run beyond its array or sub-chunk");
     }
-    if dist == 0 || p < pl.base || dist > p - pl.base {
+    if dist == 0 || p < win.base || dist > p - win.base {
         return corrupt("delta literal reaches before the window");
     }
     let src = &lit[*cur..*cur + n];

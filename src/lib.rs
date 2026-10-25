@@ -73,9 +73,13 @@ pub fn decode(src: &[u8], dst: &mut [u8]) -> Result<usize> {
         if b0 & 0x0F != 0x0C || b0 & 0x30 != 0 {
             return Err(Error::Corrupt("bad block header"));
         }
+        // SPEC-QUESTION: the checksum flag is rejected as the spec says, although
+        // the oracle ignores it (QUESTIONS.md, item 1).
         if b1 & 0x80 != 0 {
             return Err(Error::Unsupported("checksummed blocks"));
         }
+        // SPEC-QUESTION: the codec id is validated for stored blocks too, and
+        // 0x05 / 0x0B are refused there (QUESTIONS.md, items 2 and 10).
         let codec = match b1 & 0x7F {
             0x06 => Codec::Kraken,
             0x0A => Codec::Mermaid,

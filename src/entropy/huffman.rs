@@ -185,6 +185,8 @@ fn read_old_sparse(r: &mut Mf<'_>, lists: &mut LengthLists) -> Result<usize> {
         return corrupt("huffman: sparse length width");
     }
     for _ in 0..ns {
+        // SPEC-QUESTION: duplicate symbols are not addressed by the spec and are
+        // accepted (QUESTIONS.md, item 11).
         let s = r.read(8) as u8;
         let len = r.read(cb) as usize + 1;
         if len > MAX_LEN {

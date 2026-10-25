@@ -20,3 +20,7 @@ sha2 = "0.10"
 debug = false
 lto = true
 codegen-units = 1
+
+[profile.profiling]
+inherits = "release"
+debug = true

@@ -1,6 +1,6 @@
 //! Leviathan LZ sub-chunks.
 
-use super::{copy_match, raw_prefix, read_side_streams, Place};
+use super::{copy_match, raw_prefix, read_side_streams, Place, Win};
 use crate::entropy::{decode_array, decode_multi};
 use crate::error::{corrupt, Error, Result};
 use std::borrow::Cow;
@@ -28,6 +28,10 @@ impl<'a> Literals<'a> {
         if n == 0 {
             return Ok(());
         }
+        let win = Win {
+            base: pl.base,
+            limit: pl.end,
+        };
         if n > pl.end - p {
             return corrupt("leviathan: literal run past the sub-chunk");
         }
@@ -37,7 +41,7 @@ impl<'a> Literals<'a> {
                 if self.mode == 1 {
                     super::copy_raw(out, p, &self.arrays[0], &mut c, n, pl.end)?;
                 } else {
-                    super::copy_delta(out, p, &self.arrays[0], &mut c, n, dist, pl, pl.end)?;
+                    super::copy_delta(out, p, &self.arrays[0], &mut c, n, dist, win)?;
                 }
                 self.cur[0] = c;
                 Ok(())
@@ -49,7 +53,7 @@ impl<'a> Literals<'a> {
                 let first = self.take(1)?.wrapping_add(out[p - dist]);
                 out[p] = first;
                 let mut c = self.cur[0];
-                super::copy_delta(out, p + 1, &self.arrays[0], &mut c, n - 1, dist, pl, pl.end)?;
+                super::copy_delta(out, p + 1, &self.arrays[0], &mut c, n - 1, dist, win)?;
                 self.cur[0] = c;
                 Ok(())
             }
@@ -142,11 +146,10 @@ pub(crate) fn decode(body: &[u8], mode: u32, out: &mut [u8], pl: &Place) -> Resu
 
     // Commands: a single array or eight lanes.
     let cmd_first = *body.get(pos).ok_or(Error::Truncated)?;
-    let lanes: Vec<Cow<'_, [u8]>>;
-    if cmd_first & 0x80 == 0 {
+    let lanes: Vec<Cow<'_, [u8]>> = if cmd_first & 0x80 == 0 {
         let (a, n) = decode_array(&body[pos..], dst_count, 0)?;
         pos += n;
-        lanes = vec![a];
+        vec![a]
     } else {
         if cmd_first != 0x83 {
             return corrupt("leviathan: bad command lane marker");
@@ -154,8 +157,8 @@ pub(crate) fn decode(body: &[u8], mode: u32, out: &mut [u8], pl: &Place) -> Resu
         pos += 1;
         let (v, n) = decode_multi(&body[pos..], 8, dst_count, 0)?;
         pos += n;
-        lanes = v.into_iter().map(Cow::Owned).collect();
-    }
+        v.into_iter().map(Cow::Owned).collect()
+    };
     let side = read_side_streams(&body[pos..], &oc, ox.as_deref(), scale, &lc)?;
 
     let total_cmds: usize = lanes.iter().map(|l| l.len()).sum();
@@ -222,8 +225,17 @@ pub(crate) fn decode(body: &[u8], mode: u32, out: &mut [u8], pl: &Place) -> Resu
         p += mlen;
     }
     lits.run(out, p, end - p, lo, pl)?;
-    if !lits.all_used() || off_cur != side.offsets.len() || front != back {
-        return corrupt("leviathan: unused literals, offsets or lengths");
+    // SPEC-QUESTION: exact use of the literal arrays is required although the
+    // spec calls it an observation and the oracle does not check it
+    // (QUESTIONS.md, item 4).
+    if !lits.all_used() {
+        return corrupt("leviathan: unused literals");
+    }
+    if off_cur != side.offsets.len() {
+        return corrupt("leviathan: unused offsets");
+    }
+    if front != back {
+        return corrupt("leviathan: unused lengths");
     }
     Ok(())
 }

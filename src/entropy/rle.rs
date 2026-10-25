@@ -34,7 +34,7 @@ pub(crate) fn decode(body: &[u8], dst_size: usize, depth: u32) -> Result<Vec<u8>
             copy = usize::from(!cmd & 15);
             run = usize::from(cmd >> 4);
         } else if cmd >= 0x10 {
-            if end < 2 {
+            if end - lit < 2 {
                 return corrupt("rle: truncated command");
             }
             let t = (usize::from(cmd) << 8 | usize::from(w[end - 2])) - 4096;
@@ -50,7 +50,7 @@ pub(crate) fn decode(body: &[u8], dst_size: usize, depth: u32) -> Result<Vec<u8>
             lit += 1;
             continue;
         } else if cmd >= 9 {
-            if end < 2 {
+            if end - lit < 2 {
                 return corrupt("rle: truncated command");
             }
             let v = usize::from(cmd) << 8 | usize::from(w[end - 2]);
@@ -58,7 +58,7 @@ pub(crate) fn decode(body: &[u8], dst_size: usize, depth: u32) -> Result<Vec<u8>
             copy = 0;
             run = (v - 0x8FF) * 128;
         } else {
-            if end < 2 {
+            if end - lit < 2 {
                 return corrupt("rle: truncated command");
             }
             let v = usize::from(cmd) << 8 | usize::from(w[end - 2]);

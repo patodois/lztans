@@ -11,6 +11,7 @@ use std::borrow::Cow;
 pub(crate) use multi::decode_multi;
 
 /// Maximum nesting of arrays inside arrays (RLE, recursive, multi-array).
+// SPEC-QUESTION: the spec gives no nesting bound (QUESTIONS.md, item 8).
 const MAX_DEPTH: u32 = 24;
 
 /// Decode one array from the start of `src`. `limit` is the largest decoded size

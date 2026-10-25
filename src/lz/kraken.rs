@@ -1,6 +1,6 @@
 //! Kraken LZ sub-chunks.
 
-use super::{copy_delta, copy_match, copy_raw, raw_prefix, read_side_streams, Place};
+use super::{copy_delta, copy_match, copy_raw, raw_prefix, read_side_streams, Place, Win};
 use crate::entropy::decode_array;
 use crate::error::{corrupt, Error, Result};
 
@@ -47,6 +47,10 @@ pub(crate) fn decode(body: &[u8], mode: u32, out: &mut [u8], pl: &Place) -> Resu
 
     let delta = mode == 0;
     let end = pl.end;
+    let win = Win {
+        base: pl.base,
+        limit: end,
+    };
     let mut recent = [8usize; 3];
     let mut lo = 8usize;
     let mut lit_cur = 0usize;
@@ -64,7 +68,7 @@ pub(crate) fn decode(body: &[u8], mode: u32, out: &mut [u8], pl: &Place) -> Resu
             len_cur += 1;
         }
         if delta {
-            copy_delta(out, p, &lit, &mut lit_cur, lit_n, lo, pl, end)?;
+            copy_delta(out, p, &lit, &mut lit_cur, lit_n, lo, win)?;
         } else {
             copy_raw(out, p, &lit, &mut lit_cur, lit_n, end)?;
         }
@@ -102,12 +106,18 @@ pub(crate) fn decode(body: &[u8], mode: u32, out: &mut [u8], pl: &Place) -> Resu
     }
     let rest = end - p;
     if delta {
-        copy_delta(out, p, &lit, &mut lit_cur, rest, lo, pl, end)?;
+        copy_delta(out, p, &lit, &mut lit_cur, rest, lo, win)?;
     } else {
         copy_raw(out, p, &lit, &mut lit_cur, rest, end)?;
     }
-    if lit_cur != lit.len() || off_cur != side.offsets.len() || len_cur != side.lens.len() {
-        return corrupt("kraken: unused literals, offsets or lengths");
+    if lit_cur != lit.len() {
+        return corrupt("kraken: unused literals");
+    }
+    if off_cur != side.offsets.len() {
+        return corrupt("kraken: unused offsets");
+    }
+    if len_cur != side.lens.len() {
+        return corrupt("kraken: unused lengths");
     }
     Ok(())
 }

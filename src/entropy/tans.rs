@@ -70,7 +70,7 @@ fn read_weights(r: &mut Mf<'_>) -> Result<(u32, Vec<(u8, u32)>)> {
         }
     } else {
         let count = r.read(3) as usize + 1;
-        let bps = (32 - lb.leading_zeros()) as u32; // floor(log2 lb) + 1
+        let bps = 32 - lb.leading_zeros(); // floor(log2 lb) + 1
         let mdb = r.read(bps);
         if mdb < 1 || mdb > lb {
             return corrupt("tans: sparse weight width");
@@ -220,7 +220,7 @@ pub(crate) fn decode(body: &[u8], dst_size: usize) -> Result<Vec<u8>> {
         }
         out[main + k] = s as u8;
     }
-    if p + f.byte_pos() != body.len() - b.bytes_used() {
+    if Some(p + f.byte_pos()) != body.len().checked_sub(b.bytes_used()) {
         return corrupt("tans: bit streams not exactly consumed");
     }
     Ok(out)

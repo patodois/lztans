@@ -1,6 +1,6 @@
 //! Mermaid / Selkie LZ sub-chunks.
 
-use super::{copy_delta, copy_match, copy_raw, raw_prefix, Place};
+use super::{copy_delta, copy_match, copy_raw, raw_prefix, Place, Win};
 use crate::entropy::decode_array;
 use crate::error::{corrupt, Error, Result};
 
@@ -123,7 +123,7 @@ pub(crate) fn decode(body: &[u8], mode: u32, out: &mut [u8], pl: &Place) -> Resu
     let mut near_cur = 0usize;
     let mut len_cur = 0usize;
     let pieces = if dst_count > PIECE { 2 } else { 1 };
-    for piece in 0..pieces {
+    for (piece, fars) in far.iter().enumerate().take(pieces) {
         let piece_start = pl.start + piece * PIECE;
         let piece_end = if piece == 0 {
             pl.start + dst_count.min(PIECE)
@@ -135,14 +135,17 @@ pub(crate) fn decode(body: &[u8], mode: u32, out: &mut [u8], pl: &Place) -> Resu
         } else {
             &cmd[split..]
         };
-        let fars = &far[piece];
+        let win = Win {
+            base: pl.base,
+            limit: piece_end,
+        };
         let mut far_cur = 0usize;
         for &c in cmds {
             let c = usize::from(c);
             if c >= 24 {
                 let n = c & 7;
                 if delta {
-                    copy_delta(out, p, &lit, &mut lit_cur, n, recent, pl, piece_end)?;
+                    copy_delta(out, p, &lit, &mut lit_cur, n, recent, win)?;
                 } else {
                     copy_raw(out, p, &lit, &mut lit_cur, n, piece_end)?;
                 }
@@ -171,7 +174,7 @@ pub(crate) fn decode(body: &[u8], mode: u32, out: &mut [u8], pl: &Place) -> Resu
                     0 => {
                         let n = l + 64;
                         if delta {
-                            copy_delta(out, p, &lit, &mut lit_cur, n, recent, pl, piece_end)?;
+                            copy_delta(out, p, &lit, &mut lit_cur, n, recent, win)?;
                         } else {
                             copy_raw(out, p, &lit, &mut lit_cur, n, piece_end)?;
                         }
@@ -201,14 +204,22 @@ pub(crate) fn decode(body: &[u8], mode: u32, out: &mut [u8], pl: &Place) -> Resu
         }
         let rest = piece_end - p;
         if delta {
-            copy_delta(out, p, &lit, &mut lit_cur, rest, recent, pl, piece_end)?;
+            copy_delta(out, p, &lit, &mut lit_cur, rest, recent, win)?;
         } else {
             copy_raw(out, p, &lit, &mut lit_cur, rest, piece_end)?;
         }
         p += rest;
     }
-    if lit_cur != lit.len() || near_cur != near.len() || len_cur != lenbytes.len() {
-        return corrupt("mermaid: unused literals, near offsets or length bytes");
+    // SPEC-QUESTION: unused literals / near offsets are rejected; the oracle
+    // accepts them (QUESTIONS.md, item 4).
+    if lit_cur != lit.len() {
+        return corrupt("mermaid: unused literals");
+    }
+    if near_cur != near.len() {
+        return corrupt("mermaid: unused near offsets");
+    }
+    if len_cur != lenbytes.len() {
+        return corrupt("mermaid: unused length bytes");
     }
     Ok(())
 }
