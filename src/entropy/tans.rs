@@ -188,7 +188,7 @@ pub(crate) fn decode(body: &[u8], dst_size: usize) -> Result<Vec<u8>> {
     let t = &table[..];
     let mut i = 0usize;
     while i < main {
-        let from_f = (i / 5) % 2 == 0;
+        let from_f = (i / 5).is_multiple_of(2);
         let end = (i - i % 5 + 5).min(main);
         if from_f {
             while i < end {

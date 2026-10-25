@@ -321,21 +321,18 @@ fn decode_three(region: &[u8], out: &mut [u8], table: &HuffTable) -> Result<()> 
     let mut a = Lf::new(a_bytes);
     let mut b = Lf::new(bc);
     let mut c = Lb::new(bc);
-    let n = out.len();
-    let mut chunks = out.chunks_exact_mut(3);
-    for ch in &mut chunks {
+    let (chunks, rem) = out.as_chunks_mut::<3>();
+    for ch in chunks {
         ch[0] = dec_f(&mut a, t);
         ch[1] = dec_b(&mut c, t);
         ch[2] = dec_f(&mut b, t);
     }
-    let rem = chunks.into_remainder();
     if !rem.is_empty() {
         rem[0] = dec_f(&mut a, t);
         if rem.len() > 1 {
             rem[1] = dec_b(&mut c, t);
         }
     }
-    let _ = n;
     if a.byte_pos() != m || b.byte_pos() + c.bytes_used() != bc.len() {
         return corrupt("huffman: bit streams not exactly consumed");
     }

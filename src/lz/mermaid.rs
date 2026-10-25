@@ -76,7 +76,9 @@ pub(crate) fn decode(body: &[u8], mode: u32, out: &mut [u8], pl: &Place) -> Resu
             .get(cur.pos..cur.pos + 2 * n16)
             .ok_or(Error::Truncated)?;
         near = bytes
-            .chunks_exact(2)
+            .as_chunks::<2>()
+            .0
+            .iter()
             .map(|c| usize::from(c[0]) | usize::from(c[1]) << 8)
             .collect();
         cur.pos += 2 * n16;
