@@ -7,6 +7,7 @@ use core::fmt;
 /// The decoder never panics on malformed input; every violation of the format
 /// is reported as one of these values.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum Error {
     /// The input ended before the stream was complete.
     Truncated,

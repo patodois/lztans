@@ -1,22 +1,22 @@
 //! Entropy-coded byte arrays (section 3 of the format description).
 
 pub(crate) mod huffman;
-mod multi;
 mod rle;
+mod sliced;
 mod tans;
 
 use crate::error::{corrupt, Error, Result};
 use std::borrow::Cow;
 
-pub(crate) use multi::decode_multi;
+pub(crate) use sliced::read_sliced;
 
-/// Maximum nesting of arrays inside arrays (RLE, recursive, multi-array).
+/// Maximum nesting of arrays inside arrays (RLE, concatenated, sliced container).
 // SPEC-QUESTION: the spec gives no nesting bound (QUESTIONS.md, item 8).
 const MAX_DEPTH: u32 = 24;
 
 /// Decode one array from the start of `src`. `limit` is the largest decoded size
 /// the caller accepts. Returns the bytes and the number of input bytes used.
-pub(crate) fn decode_array(src: &[u8], limit: usize, depth: u32) -> Result<(Cow<'_, [u8]>, usize)> {
+pub(crate) fn read_array(src: &[u8], limit: usize, depth: u32) -> Result<(Cow<'_, [u8]>, usize)> {
     if depth > MAX_DEPTH {
         return corrupt("arrays nested too deeply");
     }
@@ -47,7 +47,7 @@ pub(crate) fn decode_array(src: &[u8], limit: usize, depth: u32) -> Result<(Cow<
     if ty > 5 {
         return corrupt("invalid array type");
     }
-    let (src_size, dst_size, hdr) = if h0 >= 0x80 {
+    let (body_len, out_len, hdr) = if h0 >= 0x80 {
         if src.len() < 3 {
             return Err(Error::Truncated);
         }
@@ -69,44 +69,44 @@ pub(crate) fn decode_array(src: &[u8], limit: usize, depth: u32) -> Result<(Cow<
         }
         (s, d, 5)
     };
-    if dst_size > limit {
+    if out_len > limit {
         return corrupt("array larger than its limit");
     }
-    let body = src.get(hdr..hdr + src_size).ok_or(Error::Truncated)?;
+    let body = src.get(hdr..hdr + body_len).ok_or(Error::Truncated)?;
     let data = match ty {
-        1 => tans::decode(body, dst_size)?,
-        2 => huffman::decode(body, dst_size, false)?,
-        3 => rle::decode(body, dst_size, depth)?,
-        4 => huffman::decode(body, dst_size, true)?,
-        _ => decode_recursive(body, dst_size, depth)?,
+        1 => tans::decode(body, out_len)?,
+        2 => huffman::decode(body, out_len, false)?,
+        3 => rle::decode(body, out_len, depth)?,
+        4 => huffman::decode(body, out_len, true)?,
+        _ => read_concat(body, out_len, depth)?,
     };
-    Ok((Cow::Owned(data), hdr + src_size))
+    Ok((Cow::Owned(data), hdr + body_len))
 }
 
-/// Type-5 arrays: a list of nested arrays, or a multi-array container.
-fn decode_recursive(body: &[u8], dst_size: usize, depth: u32) -> Result<Vec<u8>> {
+/// Type-5 arrays: a list of concatenated arrays, or a sliced container.
+fn read_concat(body: &[u8], out_len: usize, depth: u32) -> Result<Vec<u8>> {
     let b = *body.first().ok_or(Error::Truncated)?;
     let n = usize::from(b & 0x7F);
     if n < 2 || body.len() < 6 {
-        return corrupt("recursive array: count or size too small");
+        return corrupt("concatenated array: count or size too small");
     }
     if b & 0x80 == 0 {
-        let mut out: Vec<u8> = Vec::with_capacity(dst_size);
+        let mut out: Vec<u8> = Vec::with_capacity(out_len);
         let mut pos = 1usize;
         for _ in 0..n {
-            let (a, used) = decode_array(&body[pos..], dst_size - out.len(), depth + 1)?;
+            let (a, used) = read_array(&body[pos..], out_len - out.len(), depth + 1)?;
             out.extend_from_slice(&a);
             pos += used;
         }
-        if out.len() != dst_size || pos != body.len() {
-            return corrupt("recursive array: size mismatch");
+        if out.len() != out_len || pos != body.len() {
+            return corrupt("concatenated array: size mismatch");
         }
         Ok(out)
     } else {
-        let (mut outs, used) = decode_multi(body, 1, dst_size, depth)?;
+        let (mut outs, used) = read_sliced(body, 1, out_len, depth)?;
         let out = outs.pop().unwrap_or_default();
-        if out.len() != dst_size || used != body.len() {
-            return corrupt("multi-array: size mismatch");
+        if out.len() != out_len || used != body.len() {
+            return corrupt("sliced container: size mismatch");
         }
         Ok(out)
     }

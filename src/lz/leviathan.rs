@@ -1,11 +1,12 @@
 //! Leviathan LZ sub-chunks.
 
 use super::{copy_match, raw_prefix, read_side_streams, Place, Win};
-use crate::entropy::{decode_array, decode_multi};
+use crate::entropy::{read_array, read_sliced};
 use crate::error::{corrupt, Error, Result};
 use std::borrow::Cow;
 
-/// Literal arrays of a sub-chunk with their cursors.
+/// Literal arrays of a sub-chunk with their cursors. Modes (spec 7): 0 Delta1,
+/// 1 Raw1, 2 Delta2, 3 Delta4, 4 Ctx16, 5 Delta16.
 struct Literals<'a> {
     mode: u32,
     arrays: Vec<Cow<'a, [u8]>>,
@@ -27,6 +28,11 @@ impl<'a> Literals<'a> {
     fn run(&mut self, out: &mut [u8], p: usize, n: usize, dist: usize, pl: &Place) -> Result<()> {
         if n == 0 {
             return Ok(());
+        }
+        if matches!(self.mode, 2 | 3 | 5) && dist < 8 && n > dist {
+            // Spec 4.5: applies to every delta run, including the first literal
+            // of a Delta2 run (the whole run is measured).
+            return corrupt("delta literal run longer than a last distance below 8");
         }
         let win = Win {
             base: pl.base,
@@ -95,7 +101,7 @@ pub(crate) fn decode(body: &[u8], mode: u32, out: &mut [u8], pl: &Place) -> Resu
     if mode > 5 {
         return corrupt("leviathan: invalid mode");
     }
-    let dst_count = pl.dst_count();
+    let sub_len = pl.sub_len();
     let mut pos = raw_prefix(body, out, pl)?;
     let mut p = pl.start + pos;
 
@@ -106,10 +112,10 @@ pub(crate) fn decode(body: &[u8], mode: u32, out: &mut [u8], pl: &Place) -> Resu
     } else {
         0
     };
-    let (oc, n) = decode_array(&body[pos..], dst_count / 3, 0)?;
+    let (oc, n) = read_array(&body[pos..], sub_len / 3, 0)?;
     pos += n;
     let ox = if scale >= 2 {
-        let (a, n) = decode_array(&body[pos..], dst_count / 3, 0)?;
+        let (a, n) = read_array(&body[pos..], sub_len / 3, 0)?;
         pos += n;
         if a.len() != oc.len() {
             return corrupt("leviathan: offset extras length");
@@ -118,12 +124,12 @@ pub(crate) fn decode(body: &[u8], mode: u32, out: &mut [u8], pl: &Place) -> Resu
     } else {
         None
     };
-    let (lc, n) = decode_array(&body[pos..], dst_count / 5, 0)?;
+    let (lc, n) = read_array(&body[pos..], sub_len / 5, 0)?;
     pos += n;
 
     let arrays: Vec<Cow<'_, [u8]>> = match mode {
         0 | 1 => {
-            let (a, n) = decode_array(&body[pos..], dst_count, 0)?;
+            let (a, n) = read_array(&body[pos..], sub_len, 0)?;
             pos += n;
             vec![a]
         }
@@ -133,7 +139,7 @@ pub(crate) fn decode(body: &[u8], mode: u32, out: &mut [u8], pl: &Place) -> Resu
                 3 => 4,
                 _ => 16,
             };
-            let (v, n) = decode_multi(&body[pos..], n_out, dst_count, 0)?;
+            let (v, n) = read_sliced(&body[pos..], n_out, sub_len, 0)?;
             pos += n;
             v.into_iter().map(Cow::Owned).collect()
         }
@@ -147,7 +153,7 @@ pub(crate) fn decode(body: &[u8], mode: u32, out: &mut [u8], pl: &Place) -> Resu
     // Commands: a single array or eight lanes.
     let cmd_first = *body.get(pos).ok_or(Error::Truncated)?;
     let lanes: Vec<Cow<'_, [u8]>> = if cmd_first & 0x80 == 0 {
-        let (a, n) = decode_array(&body[pos..], dst_count, 0)?;
+        let (a, n) = read_array(&body[pos..], sub_len, 0)?;
         pos += n;
         vec![a]
     } else {
@@ -155,14 +161,14 @@ pub(crate) fn decode(body: &[u8], mode: u32, out: &mut [u8], pl: &Place) -> Resu
             return corrupt("leviathan: bad command lane marker");
         }
         pos += 1;
-        let (v, n) = decode_multi(&body[pos..], 8, dst_count, 0)?;
+        let (v, n) = read_sliced(&body[pos..], 8, sub_len, 0)?;
         pos += n;
         v.into_iter().map(Cow::Owned).collect()
     };
     let side = read_side_streams(&body[pos..], &oc, ox.as_deref(), scale, &lc)?;
 
     let total_cmds: usize = lanes.iter().map(|l| l.len()).sum();
-    let multi = lanes.len() == 8;
+    let eight_lanes = lanes.len() == 8;
     let mut lane_cur = [0usize; 8];
     let end = pl.end;
     let mut recent = [8usize; 7];
@@ -172,7 +178,7 @@ pub(crate) fn decode(body: &[u8], mode: u32, out: &mut [u8], pl: &Place) -> Resu
     let mut back = side.lens.len();
 
     for k in 0..total_cmds {
-        let cmd = if multi {
+        let cmd = if eight_lanes {
             let lane = (p - pl.start) & 7;
             let c = *lanes[lane]
                 .get(lane_cur[lane])

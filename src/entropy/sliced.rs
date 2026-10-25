@@ -1,13 +1,13 @@
 //! Multi-array container (shared by type-5 arrays and Leviathan sub-chunks).
 
-use super::decode_array;
+use super::read_array;
 use crate::bits::{Mb, Mf};
 use crate::error::{corrupt, Error, Result};
 
 /// Decode a container that starts at `src[0]` (its count byte) and whose region
 /// extends to the end of `src`. Produces `n_out` output arrays whose total size
 /// is at most `limit`. Returns the arrays and the number of bytes occupied.
-pub(crate) fn decode_multi(
+pub(crate) fn read_sliced(
     src: &[u8],
     n_out: usize,
     limit: usize,
@@ -18,7 +18,7 @@ pub(crate) fn decode_multi(
     }
     let b = src[0];
     if b & 0x80 == 0 {
-        return corrupt("multi-array: count byte without bit 7");
+        return corrupt("sliced container: count byte without bit 7");
     }
     // SPEC-QUESTION: `limit` bounds the total size of the source arrays; the
     // spec states no call-site limit for containers (QUESTIONS.md, item 9).
@@ -28,7 +28,7 @@ pub(crate) fn decode_multi(
         let mut outs = Vec::with_capacity(n_out);
         let mut left = limit;
         for _ in 0..n_out {
-            let (a, n) = decode_array(&src[pos..], left, depth + 1)?;
+            let (a, n) = read_array(&src[pos..], left, depth + 1)?;
             left -= a.len();
             pos += n;
             outs.push(a.into_owned());
@@ -38,7 +38,7 @@ pub(crate) fn decode_multi(
     let mut sources: Vec<Vec<u8>> = Vec::with_capacity(n_in);
     let mut total = 0usize;
     for _ in 0..n_in {
-        let (a, n) = decode_array(&src[pos..], limit - total, depth + 1)?;
+        let (a, n) = read_array(&src[pos..], limit - total, depth + 1)?;
         total += a.len();
         pos += n;
         sources.push(a.into_owned());
@@ -53,33 +53,33 @@ pub(crate) fn decode_multi(
 
     let index: Vec<u8>;
     let exps: Vec<u8>;
-    let num_lens: usize;
+    let n_exp: usize;
     if combined {
-        let (a, n) = decode_array(&src[pos..], total, depth + 1)?;
+        let (a, n) = read_array(&src[pos..], total, depth + 1)?;
         pos += n;
         index = a.iter().map(|t| t & 15).collect();
         exps = a.iter().map(|t| t >> 4).collect();
-        num_lens = index.len();
+        n_exp = index.len();
     } else {
-        let (a, n) = decode_array(&src[pos..], total, depth + 1)?;
+        let (a, n) = read_array(&src[pos..], total, depth + 1)?;
         pos += n;
         if a.len() < n_out {
-            return corrupt("multi-array: fewer intervals than output arrays");
+            return corrupt("sliced container: fewer intervals than output arrays");
         }
-        num_lens = a.len() - n_out;
-        let (e, n2) = decode_array(&src[pos..], num_lens, depth + 1)?;
+        n_exp = a.len() - n_out;
+        let (e, n2) = read_array(&src[pos..], n_exp, depth + 1)?;
         pos += n2;
-        if e.len() != num_lens {
-            return corrupt("multi-array: exponent count");
+        if e.len() != n_exp {
+            return corrupt("sliced container: exponent count");
         }
         if e.iter().any(|&x| x > 16) {
-            return corrupt("multi-array: exponent above 16");
+            return corrupt("sliced container: exponent above 16");
         }
         index = a.into_owned();
         exps = e.into_owned();
     }
     if index.len() > total {
-        return corrupt("multi-array: too many intervals");
+        return corrupt("sliced container: too many intervals");
     }
     if vb > src.len() - pos {
         return Err(Error::Truncated);
@@ -88,18 +88,18 @@ pub(crate) fn decode_multi(
     pos += vb;
     match index.last() {
         Some(0) => {}
-        _ => return corrupt("multi-array: last index is not zero"),
+        _ => return corrupt("sliced container: last index is not zero"),
     }
     let mut fwd = Mf::new(streams);
     let mut bwd = Mb::new(streams);
-    let mut lens: Vec<usize> = Vec::with_capacity(num_lens);
-    for (i, &e) in exps.iter().take(num_lens).enumerate() {
+    let mut lens: Vec<usize> = Vec::with_capacity(n_exp);
+    for (i, &e) in exps.iter().take(n_exp).enumerate() {
         let e = u32::from(e);
         let r = if i % 2 == 0 { fwd.read(e) } else { bwd.read(e) };
         lens.push((1usize << e) + r as usize);
     }
     if fwd.overrun() || bwd.overrun() {
-        return corrupt("multi-array: interval length streams overrun");
+        return corrupt("sliced container: interval length streams overrun");
     }
 
     let mut cursors = vec![0usize; n_in];
@@ -111,23 +111,23 @@ pub(crate) fn decode_multi(
         loop {
             let s = *index
                 .get(ci)
-                .ok_or(Error::Corrupt("multi-array: index list ended"))?;
+                .ok_or(Error::Corrupt("sliced container: index list ended"))?;
             ci += 1;
             if s == 0 {
                 break;
             }
             let s = usize::from(s);
             if s > n_in {
-                return corrupt("multi-array: source index out of range");
+                return corrupt("sliced container: source index out of range");
             }
             let len = *lens
                 .get(cl)
-                .ok_or(Error::Corrupt("multi-array: length list ended"))?;
+                .ok_or(Error::Corrupt("sliced container: length list ended"))?;
             cl += 1;
             let c = cursors[s - 1];
             let srcarr = &sources[s - 1];
             if len > srcarr.len() - c {
-                return corrupt("multi-array: interval beyond its source");
+                return corrupt("sliced container: interval beyond its source");
             }
             o.extend_from_slice(&srcarr[c..c + len]);
             cursors[s - 1] = c + len;
@@ -137,12 +137,12 @@ pub(crate) fn decode_multi(
         }
         outs.push(o);
     }
-    if ci != index.len() || cl != num_lens {
-        return corrupt("multi-array: unused intervals");
+    if ci != index.len() || cl != n_exp {
+        return corrupt("sliced container: unused intervals");
     }
     for (c, s) in cursors.iter().zip(sources.iter()) {
         if *c != s.len() {
-            return corrupt("multi-array: source array not fully used");
+            return corrupt("sliced container: source array not fully used");
         }
     }
     Ok((outs, pos))

@@ -13,17 +13,30 @@ fn sha(data: &[u8]) -> String {
     hex(&Sha256::digest(data))
 }
 
+/// One synthetic entry: file, size, expectation, digest.
+struct Entry {
+    id: String,
+    file: String,
+    size: usize,
+    expect: String,
+    sha: Option<String>,
+}
+
 /// Minimal reader for the pretty-printed `synthetic.json`.
-fn read_synthetic(dir: &Path) -> Vec<(String, usize, Option<String>)> {
+fn read_synthetic(dir: &Path) -> Vec<Entry> {
     let text = fs::read_to_string(dir.join("synthetic.json")).unwrap();
     let mut out = Vec::new();
-    let (mut file, mut size, mut digest) = (None, None, None);
+    let (mut id, mut file, mut size, mut expect, mut digest) = (None, None, None, None, None);
     for line in text.lines() {
         let line = line.trim().trim_end_matches(',');
-        if let Some(v) = line.strip_prefix("\"file\": ") {
+        if let Some(v) = line.strip_prefix("\"id\": ") {
+            id = Some(v.trim_matches('"').to_string());
+        } else if let Some(v) = line.strip_prefix("\"file\": ") {
             file = Some(v.trim_matches('"').to_string());
         } else if let Some(v) = line.strip_prefix("\"decompressed_size\": ") {
             size = Some(v.parse::<usize>().unwrap());
+        } else if let Some(v) = line.strip_prefix("\"expect\": ") {
+            expect = Some(v.trim_matches('"').to_string());
         } else if let Some(v) = line.strip_prefix("\"sha256\": ") {
             digest = Some(if v == "null" {
                 None
@@ -31,8 +44,20 @@ fn read_synthetic(dir: &Path) -> Vec<(String, usize, Option<String>)> {
                 Some(v.trim_matches('"').to_string())
             });
         } else if line.starts_with('}') {
-            if let (Some(f), Some(s), Some(d)) = (file.take(), size.take(), digest.take()) {
-                out.push((f, s, d));
+            if let (Some(id), Some(file), Some(size), Some(expect), Some(sha)) = (
+                id.take(),
+                file.take(),
+                size.take(),
+                expect.take(),
+                digest.take(),
+            ) {
+                out.push(Entry {
+                    id,
+                    file,
+                    size,
+                    expect,
+                    sha,
+                });
             }
         }
     }
@@ -43,24 +68,70 @@ fn read_synthetic(dir: &Path) -> Vec<(String, usize, Option<String>)> {
 fn synthetic_vectors() {
     let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/vectors");
     let rows = read_synthetic(&dir);
-    assert_eq!(rows.len(), 77);
-    let mut rejected = 0;
-    for (file, size, digest) in rows {
-        let data = fs::read(dir.join(&file)).unwrap();
-        let mut out = vec![0u8; size];
+    assert_eq!(rows.len(), 98);
+    let (mut decoded, mut rejected, mut unspecified) = (0, 0, 0);
+    for e in rows {
+        let data = fs::read(dir.join(&e.file)).unwrap();
+        let mut out = vec![0u8; e.size];
         let res = lztans::decode(&data, &mut out);
-        match digest {
-            Some(d) => {
-                res.unwrap_or_else(|e| panic!("{file}: {e}"));
-                assert_eq!(sha(&out), d, "{file}");
+        match e.expect.as_str() {
+            "decode" => {
+                res.unwrap_or_else(|err| panic!("{}: {err}", e.id));
+                assert_eq!(sha(&out), e.sha.unwrap(), "{}", e.id);
+                decoded += 1;
             }
-            None => {
-                assert!(res.is_err(), "{file} must be rejected");
+            "reject" => {
+                assert!(res.is_err(), "{} must be rejected", e.id);
                 rejected += 1;
             }
+            // Only has to return without panicking.
+            "unspecified" => unspecified += 1,
+            other => panic!("unknown expectation {other}"),
         }
     }
-    assert_eq!(rejected, 1);
+    assert_eq!((decoded, rejected, unspecified), (87, 10, 1));
+}
+
+/// Aligned prefixes (spec 1.7) decode to the first bytes of the full output.
+#[test]
+fn aligned_prefixes() {
+    let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/vectors");
+    let data = fs::read(dir.join("syn-prefix-base.bin")).unwrap();
+    let rows = read_synthetic(&dir);
+    let full = rows
+        .iter()
+        .find(|e| e.id == "syn-prefix-base")
+        .expect("base entry");
+    let mut whole = vec![0u8; full.size];
+    lztans::decode(&data, &mut whole).unwrap();
+    assert_eq!(sha(&whole), *full.sha.as_ref().unwrap());
+    let mut checked = 0;
+    for e in rows
+        .iter()
+        .filter(|e| e.id.starts_with("syn-prefix-aligned"))
+    {
+        assert_eq!(e.size % 262_144, 0);
+        let mut out = vec![0u8; e.size];
+        let used = lztans::decode(&data, &mut out).unwrap();
+        assert!(used < data.len(), "later blocks must not be examined");
+        assert_eq!(out[..], whole[..e.size], "{}", e.id);
+        checked += 1;
+    }
+    assert!(checked >= 2);
+    // Zero bytes need no input; every other size, aligned or not, must not panic.
+    assert_eq!(lztans::decode(&[], &mut []), Ok(0));
+    for size in [
+        1usize,
+        1000,
+        100_000,
+        262_143,
+        262_145,
+        400_000,
+        full.size - 1,
+    ] {
+        let mut out = vec![0u8; size];
+        let _ = lztans::decode(&data, &mut out);
+    }
 }
 
 fn read_manifest(path: &Path, size_col: usize, sha_col: usize) -> Vec<(String, usize, String)> {
@@ -98,5 +169,5 @@ fn corpus_vectors() {
         }
     }
     eprintln!("corpus vectors matched: {n}");
-    assert_eq!(n, 584);
+    assert_eq!(n, 648);
 }

@@ -19,7 +19,7 @@ pub(crate) struct Place {
 }
 
 impl Place {
-    pub fn dst_count(&self) -> usize {
+    pub fn sub_len(&self) -> usize {
         self.end - self.start
     }
 }
@@ -177,8 +177,7 @@ pub(crate) fn copy_match(
         return corrupt("match runs past the end of its sub-chunk");
     }
     if dist < 8 && len > dist {
-        // SPEC-QUESTION: overlapping matches with distance below 8 are
-        // unspecified (4.4); they are rejected here.
+        // Spec 4.4: an overlapping match with distance below 8 is invalid.
         return corrupt("overlapping match with distance below 8");
     }
     if dist >= len {
@@ -239,6 +238,10 @@ pub(crate) fn copy_delta(
     if n > win.limit - p || n > lit.len() - *cur {
         return corrupt("literal run beyond its array or sub-chunk");
     }
+    if dist < 8 && n > dist {
+        // Spec 4.5: a delta run longer than a last distance below 8 is invalid.
+        return corrupt("delta literal run longer than a last distance below 8");
+    }
     if dist == 0 || p < win.base || dist > p - win.base {
         return corrupt("delta literal reaches before the window");
     }
@@ -264,7 +267,7 @@ pub(crate) fn raw_prefix(body: &[u8], out: &mut [u8], pl: &Place) -> Result<usiz
     if pl.start != pl.base {
         return Ok(0);
     }
-    if pl.dst_count() < 8 {
+    if pl.sub_len() < 8 {
         return corrupt("sub-chunk too short for its eight raw bytes");
     }
     let raw = body.get(..8).ok_or(Error::Truncated)?;

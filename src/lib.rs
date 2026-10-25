@@ -12,7 +12,8 @@
 //!
 //! ```
 //! # use lztans::decode;
-//! // A stored block: header `CC 06`... (see the crate README for real streams).
+//! // A stored block. Block header `4C 06`: low nibble 0xC, bit 6 set (stored,
+//! // no compression), then codec id 0x06; the four output bytes follow verbatim.
 //! let mut out = [0u8; 4];
 //! let stream = [0x4C, 0x06, b'a', b'b', b'c', b'd'];
 //! assert_eq!(decode(&stream, &mut out), Ok(6));
@@ -51,6 +52,18 @@ enum Codec {
 }
 
 /// Decode one stream into `dst`, whose length must equal the decompressed size.
+///
+/// # Prefixes
+///
+/// A stream is made of blocks of 262,144 output bytes, and each block depends only on
+/// earlier ones. So if `dst.len()` is a multiple of 262,144 and not larger than the
+/// true decompressed size, the call is valid: it decodes the first `dst.len()` bytes
+/// of the full output and does not look at the input after those blocks (useful to
+/// probe the start of a long stream, or to grow an output buffer geometrically).
+/// For any other length below the true size the result is not guaranteed: the last
+/// block is then decoded with sizes different from those it was encoded with and the
+/// call usually fails (it never panics). A length above the true size fails with
+/// [`Error::Truncated`].
 ///
 /// Returns the number of input bytes consumed. Input bytes after the end of the
 /// stream are ignored. An empty `dst` decodes to nothing without looking at the
@@ -129,7 +142,7 @@ fn decode_quantum(
     let mut q = 0usize;
     let mut d = 0usize;
     while d < left {
-        let dst_count = (left - d).min(SUBCHUNK);
+        let sub_len = (left - d).min(SUBCHUNK);
         if payload.len() - q < 4 {
             return Err(Error::Truncated);
         }
@@ -138,35 +151,35 @@ fn decode_quantum(
             | usize::from(payload[q + 2]);
         let start = block_start + d;
         if h & 0x80_0000 == 0 {
-            let (arr, used) = entropy::decode_array(&payload[q..], dst_count, 0)?;
-            if arr.len() != dst_count {
+            let (arr, used) = entropy::read_array(&payload[q..], sub_len, 0)?;
+            if arr.len() != sub_len {
                 return Err(Error::Corrupt("entropy sub-chunk has the wrong size"));
             }
-            dst[start..start + dst_count].copy_from_slice(&arr);
+            dst[start..start + sub_len].copy_from_slice(&arr);
             q += used;
         } else {
             let mode = ((h >> 19) & 0xF) as u32;
             let n = h & 0x7_FFFF;
             let body = payload.get(q + 3..q + 3 + n).ok_or(Error::Truncated)?;
-            if n < dst_count {
+            if n < sub_len {
                 let pl = Place {
                     base,
                     start,
-                    end: start + dst_count,
+                    end: start + sub_len,
                 };
                 match codec {
                     Codec::Kraken => lz::kraken::decode(body, mode, dst, &pl)?,
                     Codec::Mermaid => lz::mermaid::decode(body, mode, dst, &pl)?,
                     Codec::Leviathan => lz::leviathan::decode(body, mode, dst, &pl)?,
                 }
-            } else if n == dst_count && mode == 0 {
-                dst[start..start + dst_count].copy_from_slice(body);
+            } else if n == sub_len && mode == 0 {
+                dst[start..start + sub_len].copy_from_slice(body);
             } else {
                 return Err(Error::Corrupt("bad sub-chunk header"));
             }
             q += 3 + n;
         }
-        d += dst_count;
+        d += sub_len;
     }
     if q != payload.len() {
         return Err(Error::Corrupt("quantum payload not exactly consumed"));

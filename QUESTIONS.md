@@ -1,6 +1,7 @@
 # Questions for the spec writer
 
-Written during the implementation (spec commit `22e0937`). Each item says what
+Written during the first implementation (spec commit `22e0937`) and revised for spec commit
+`bb20c71`, which settled items 3 and part of 4 and renamed several terms. Names below use the new terms. Each item says what
 was unclear, which assumption the code makes (marked `// SPEC-QUESTION:` in the
 source where it lives), and what the oracle showed when it could be asked.
 
@@ -18,19 +19,20 @@ source where it lives), and what the oracle showed when it could be asked.
    the bytes) but rejects an unknown id such as 0x20. The code follows the spec
    text and rejects 0x05 / 0x0B even for stored blocks. Harmless for real data.
 
-3. **Overlapping matches with distance below 8 (4.4).** The spec allows either
-   rejecting or LZ77 repetition. The code rejects `dist < 8 && len > dist`. The
-   oracle accepts such streams and produces its non-LZ77 output (confirmed on
-   mutated inputs), which this crate does not reproduce.
+3. **Settled by `bb20c71`:** overlapping matches with distance below 8 (4.4) and delta literal runs
+   longer than a last distance below 8 (4.5, every delta mode including final runs) are invalid and
+   rejected. Also settled: Mermaid unused far offsets (6.3), a nonzero second far count in a
+   single-piece sub-chunk (6.1), single-symbol Huffman descriptions (3.3.1). For Delta2 (Leviathan mode
+   2) the code measures the *whole* run against the last distance (the spec says the rule covers "the
+   first literal of a Delta2 run"; reading it as the whole run is an assumption, and it agrees with
+   every vector).
 
-4. **Unused literals at the end of a sub-chunk.** 4.1 / 5.3 / 6.3 say the literal
-   arrays must be used up exactly; 7.4 says that for Leviathan it is only an
-   observation. The oracle does not check this for Leviathan or Mermaid
-   (mutated streams with leftover literals decode to a hash); no Kraken mutant
-   with leftover literals was ever accepted. The code requires exact use in all three (stricter than the oracle,
-   consistent with the spec). Same for Mermaid's near-offset list: the oracle
-   accepted two mutants with unused near offsets. Offsets and lengths: the
-   oracle enforced exact use in every probe.
+4. **Unused literals at the end of a sub-chunk.** Kraken 5.3 and Mermaid 6.3 now state it as a rule;
+   for Leviathan 7.4 calls it an observation only. The oracle does not check it for Leviathan or
+   Mermaid (mutated streams with leftover literals decode to a hash); no Kraken mutant with leftover
+   literals was ever accepted. The code requires exact use in all three (stricter than the oracle for
+   Leviathan, where the spec leaves it open). Mermaid near offsets: the oracle accepted two mutants
+   with unused near offsets; the spec requires full use and so does the code.
 
 5. **Literal runs reaching past the end of their array (4.1, 5.2, 7.4).** The
    oracle accepts some mutated streams in which a literal run asks for more
@@ -49,13 +51,13 @@ source where it lives), and what the oracle showed when it could be asked.
    accepted (9 in 40 000) violates exactly this rule.
 
 8. **Nesting depth of arrays (3.5 - 3.7).** The spec does not bound the nesting of
-   RLE / type-5 / multi-array containers. The code rejects nesting deeper than 24
+   RLE / type-5 / sliced containers. The code rejects nesting deeper than 24
    levels to keep stack use bounded. Real data nests at most a few levels.
 
-9. **Call-site limit of multi-array containers (3.7, 7.1).** Literal and command
+9. **Call-site limit of sliced containers (3.7, 7.1).** Literal and command
    containers have no stated limit. The code requires the total decoded size of
-   the source arrays to be at most `dst_count` (the sub-chunk size) in Leviathan
-   sub-chunks and at most the array's `dst_size` in type-5 arrays.
+   the source arrays to be at most `sub_len` (the sub-chunk size) in Leviathan
+   sub-chunks and at most the array's `out_len` in type-5 arrays.
 
 10. **Block header bits (1.2).** The code requires `byte0 & 0x0F == 0xC` and bits
     4-5 clear, and applies the codec check to every block, stored or not (see 2).

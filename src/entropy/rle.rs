@@ -1,19 +1,19 @@
 //! RLE arrays (array type 3).
 
-use super::decode_array;
+use super::read_array;
 use crate::error::{corrupt, Result};
 
-pub(crate) fn decode(body: &[u8], dst_size: usize, depth: u32) -> Result<Vec<u8>> {
+pub(crate) fn decode(body: &[u8], out_len: usize, depth: u32) -> Result<Vec<u8>> {
     if body.is_empty() {
         return corrupt("rle: empty body");
     }
     if body.len() == 1 {
-        return Ok(vec![body[0]; dst_size]);
+        return Ok(vec![body[0]; out_len]);
     }
     // Work buffer: literals from the front, commands from the back.
     let owned;
     let w: &[u8] = if body[0] != 0 {
-        let (arr, n) = decode_array(body, dst_size, depth + 1)?;
+        let (arr, n) = read_array(body, out_len, depth + 1)?;
         let mut v = Vec::with_capacity(arr.len() + body.len() - n);
         v.extend_from_slice(&arr);
         v.extend_from_slice(&body[n..]);
@@ -22,10 +22,10 @@ pub(crate) fn decode(body: &[u8], dst_size: usize, depth: u32) -> Result<Vec<u8>
     } else {
         &body[1..]
     };
-    let mut out: Vec<u8> = Vec::with_capacity(dst_size);
+    let mut out: Vec<u8> = Vec::with_capacity(out_len);
     let mut lit = 0usize;
     let mut end = w.len();
-    let mut rle_byte = 0u8;
+    let mut fill = 0u8;
     while lit < end {
         let cmd = w[end - 1];
         let (copy, run);
@@ -46,7 +46,7 @@ pub(crate) fn decode(body: &[u8], dst_size: usize, depth: u32) -> Result<Vec<u8>
             if lit >= end {
                 return corrupt("rle: missing literal for run byte");
             }
-            rle_byte = w[lit];
+            fill = w[lit];
             lit += 1;
             continue;
         } else if cmd >= 9 {
@@ -69,14 +69,14 @@ pub(crate) fn decode(body: &[u8], dst_size: usize, depth: u32) -> Result<Vec<u8>
         if copy > end - lit {
             return corrupt("rle: literal count beyond the data");
         }
-        if copy + run > dst_size - out.len() {
+        if copy + run > out_len - out.len() {
             return corrupt("rle: output overrun");
         }
         out.extend_from_slice(&w[lit..lit + copy]);
         lit += copy;
-        out.resize(out.len() + run, rle_byte);
+        out.resize(out.len() + run, fill);
     }
-    if out.len() != dst_size {
+    if out.len() != out_len {
         return corrupt("rle: output size mismatch");
     }
     Ok(out)

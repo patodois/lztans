@@ -1,7 +1,7 @@
 //! Mermaid / Selkie LZ sub-chunks.
 
 use super::{copy_delta, copy_match, copy_raw, raw_prefix, Place, Win};
-use crate::entropy::decode_array;
+use crate::entropy::read_array;
 use crate::error::{corrupt, Error, Result};
 
 const PIECE: usize = 65536;
@@ -40,14 +40,14 @@ pub(crate) fn decode(body: &[u8], mode: u32, out: &mut [u8], pl: &Place) -> Resu
         return corrupt("mermaid: invalid mode");
     }
     let delta = mode == 0;
-    let dst_count = pl.dst_count();
+    let sub_len = pl.sub_len();
     let mut pos = raw_prefix(body, out, pl)?;
-    let (lit, n) = decode_array(&body[pos..], dst_count, 0)?;
+    let (lit, n) = read_array(&body[pos..], sub_len, 0)?;
     pos += n;
-    let (cmd, n) = decode_array(&body[pos..], dst_count, 0)?;
+    let (cmd, n) = read_array(&body[pos..], sub_len, 0)?;
     pos += n;
     let mut cur = Cursor { data: body, pos };
-    let split = if dst_count > PIECE {
+    let split = if sub_len > PIECE {
         let s = cur.u16()?;
         if s > cmd.len() {
             return corrupt("mermaid: command split beyond the command array");
@@ -59,9 +59,9 @@ pub(crate) fn decode(body: &[u8], mode: u32, out: &mut [u8], pl: &Place) -> Resu
     let n16 = cur.u16()?;
     let near: Vec<usize>;
     if n16 == 0xFFFF {
-        let (hi, n) = decode_array(&body[cur.pos..], dst_count >> 1, 0)?;
+        let (hi, n) = read_array(&body[cur.pos..], sub_len >> 1, 0)?;
         cur.pos += n;
-        let (lo, n) = decode_array(&body[cur.pos..], dst_count >> 1, 0)?;
+        let (lo, n) = read_array(&body[cur.pos..], sub_len >> 1, 0)?;
         cur.pos += n;
         if hi.len() != lo.len() {
             return corrupt("mermaid: near offset arrays differ in length");
@@ -95,6 +95,9 @@ pub(crate) fn decode(body: &[u8], mode: u32, out: &mut [u8], pl: &Place) -> Resu
             n2 = cur.u16()?;
         }
     }
+    if sub_len <= PIECE && n2 != 0 {
+        return corrupt("mermaid: second far-offset list in a single-piece sub-chunk");
+    }
     let window_pos = pl.start - pl.base;
     let mut far: [Vec<usize>; 2] = [Vec::new(), Vec::new()];
     for (piece, count) in [n1, n2].into_iter().enumerate() {
@@ -124,11 +127,11 @@ pub(crate) fn decode(body: &[u8], mode: u32, out: &mut [u8], pl: &Place) -> Resu
     let mut lit_cur = 0usize;
     let mut near_cur = 0usize;
     let mut len_cur = 0usize;
-    let pieces = if dst_count > PIECE { 2 } else { 1 };
+    let pieces = if sub_len > PIECE { 2 } else { 1 };
     for (piece, fars) in far.iter().enumerate().take(pieces) {
-        let piece_start = pl.start + piece * PIECE;
+        let piece_base = pl.start + piece * PIECE;
         let piece_end = if piece == 0 {
-            pl.start + dst_count.min(PIECE)
+            pl.start + sub_len.min(PIECE)
         } else {
             end
         };
@@ -167,7 +170,7 @@ pub(crate) fn decode(body: &[u8], mode: u32, out: &mut [u8], pl: &Place) -> Resu
                     .ok_or(Error::Corrupt("mermaid: far offsets exhausted"))?;
                 far_cur += 1;
                 let mlen = c + 5;
-                recent = far_dist(piece_start, v, p, pl)?;
+                recent = far_dist(piece_base, v, p, pl)?;
                 copy_match(out, p, recent, mlen, pl, piece_end)?;
                 p += mlen;
             } else {
@@ -197,7 +200,7 @@ pub(crate) fn decode(body: &[u8], mode: u32, out: &mut [u8], pl: &Place) -> Resu
                             .ok_or(Error::Corrupt("mermaid: far offsets exhausted"))?;
                         far_cur += 1;
                         let mlen = l + 29;
-                        recent = far_dist(piece_start, v, p, pl)?;
+                        recent = far_dist(piece_base, v, p, pl)?;
                         copy_match(out, p, recent, mlen, pl, piece_end)?;
                         p += mlen;
                     }
@@ -211,9 +214,12 @@ pub(crate) fn decode(body: &[u8], mode: u32, out: &mut [u8], pl: &Place) -> Resu
             copy_raw(out, p, &lit, &mut lit_cur, rest, piece_end)?;
         }
         p += rest;
+        // Spec 6.3: every far offset of the piece must have been used.
+        if far_cur != fars.len() {
+            return corrupt("mermaid: unused far offsets");
+        }
     }
-    // SPEC-QUESTION: unused literals / near offsets are rejected; the oracle
-    // accepts them (QUESTIONS.md, item 4).
+    // Spec 6.3: literals, near offsets and LEN bytes must be fully used.
     if lit_cur != lit.len() {
         return corrupt("mermaid: unused literals");
     }
@@ -234,9 +240,9 @@ fn pos_prefix(pl: &Place) -> usize {
     }
 }
 
-/// Distance of a far match whose source is `v` bytes before `piece_start`.
-fn far_dist(piece_start: usize, v: usize, p: usize, pl: &Place) -> Result<usize> {
-    let src = piece_start
+/// Distance of a far match whose source is `v` bytes before `piece_base`.
+fn far_dist(piece_base: usize, v: usize, p: usize, pl: &Place) -> Result<usize> {
+    let src = piece_base
         .checked_sub(v)
         .ok_or(Error::Corrupt("mermaid: far offset"))?;
     if src < pl.base || src >= p {

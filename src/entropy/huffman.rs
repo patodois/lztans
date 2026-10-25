@@ -203,7 +203,7 @@ fn read_old_dense(r: &mut Mf<'_>, lists: &mut LengthLists) -> Result<usize> {
     let mut skip = r.read(1) == 1;
     let mut sym: usize = 0;
     let mut coded: usize = 0;
-    let mut avg4: i32 = 32;
+    let mut mean4: i32 = 32;
     while sym < 256 {
         if skip {
             skip = false;
@@ -227,11 +227,11 @@ fn read_old_dense(r: &mut Mf<'_>, lists: &mut LengthLists) -> Result<usize> {
             r.consume(z + 1);
             let f = r.read(k);
             let v = (z << k) | f;
-            let len = zigzag(v) + ((avg4 + 2) >> 2);
+            let len = zigzag(v) + ((mean4 + 2) >> 2);
             if !(1..=MAX_LEN as i32).contains(&len) {
                 return corrupt("huffman: dense code length out of range");
             }
-            avg4 = len + ((3 * avg4 + 2) >> 2);
+            mean4 = len + ((3 * mean4 + 2) >> 2);
             lists.lists[len as usize].push(sym as u8);
             sym += 1;
         }
@@ -340,12 +340,12 @@ fn decode_three(region: &[u8], out: &mut [u8], table: &HuffTable) -> Result<()> 
 }
 
 /// Decode a Huffman array body (`body` includes the code description).
-pub(crate) fn decode(body: &[u8], dst_size: usize, six_streams: bool) -> Result<Vec<u8>> {
+pub(crate) fn decode(body: &[u8], out_len: usize, six_streams: bool) -> Result<Vec<u8>> {
     let mut r = Mf::new(body);
     let table = read_description(&mut r)?;
     let p = r.byte_pos();
     let rest = &body[p.min(body.len())..];
-    let mut out = vec![0u8; dst_size];
+    let mut out = vec![0u8; out_len];
     if !six_streams {
         decode_three(rest, &mut out, &table)?;
     } else {
@@ -358,7 +358,7 @@ pub(crate) fn decode(body: &[u8], dst_size: usize, six_streams: bool) -> Result<
             return corrupt("huffman: six-stream split");
         }
         let (left, right) = rest.split_at(m);
-        let half = dst_size.div_ceil(2);
+        let half = out_len.div_ceil(2);
         let (o1, o2) = out.split_at_mut(half);
         decode_three(left, o1, &table)?;
         decode_three(right, o2, &table)?;

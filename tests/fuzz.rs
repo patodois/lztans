@@ -122,7 +122,9 @@ fn load_seeds() -> Vec<Seed> {
         if let Some(v) = line.strip_prefix("\"file\": ") {
             f = v.trim_matches('"').to_string();
         } else if let Some(v) = line.strip_prefix("\"decompressed_size\": ") {
-            sizes.insert(f.clone(), v.parse::<usize>().unwrap());
+            sizes
+                .entry(f.clone())
+                .or_insert(v.parse::<usize>().unwrap());
         }
     }
     for p in names {
@@ -188,7 +190,8 @@ fn mutated_and_random_inputs() {
         .and_then(|v| v.parse().ok())
         .unwrap_or(3000);
     let seeds = load_seeds();
-    assert!(seeds.len() >= 77);
+    let synthetic = seeds.len();
+    assert!(synthetic >= 90);
     let mut st = Stats {
         cases: 0,
         ok: 0,
@@ -211,7 +214,7 @@ fn mutated_and_random_inputs() {
         // A third of the cases start from the synthetic streams, whose arrays
         // are mostly stored, so mutations reach the LZ command loops.
         let s = if rng.below(3) == 0 {
-            &seeds[rng.below(77)]
+            &seeds[rng.below(synthetic)]
         } else {
             &seeds[rng.below(seeds.len())]
         };

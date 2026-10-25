@@ -16,8 +16,8 @@ fn read_weights(r: &mut Mf<'_>) -> Result<(u32, Vec<(u8, u32)>)> {
     if r.read(1) != 0 {
         return corrupt("tans: reserved bit set");
     }
-    let lb = r.read(2) + 8;
-    let table_size: u32 = 1 << lb;
+    let tb = r.read(2) + 8;
+    let table_size: u32 = 1 << tb;
     let golomb = r.read(1) == 1;
     let mut out: Vec<(u8, u32)> = Vec::new();
     if golomb {
@@ -38,15 +38,15 @@ fn read_weights(r: &mut Mf<'_>) -> Result<(u32, Vec<(u8, u32)>)> {
         }
         let (codes, extras) = u.split_at(ns);
         let syms = read_symbol_ranges(r, ns, extras)?;
-        let mut avg: i64 = 6;
+        let mut mean: i64 = 6;
         let mut total: u64 = 0;
         for (i, &s) in syms.iter().enumerate() {
-            let n_extra = codes[i] + q;
-            if n_extra > 15 {
+            let w_bits = codes[i] + q;
+            if w_bits > 15 {
                 return corrupt("tans: weight width");
             }
-            let mut v: i64 = i64::from(r.read(n_extra)) + (1i64 << n_extra) - (1i64 << q);
-            let a4 = avg >> 2;
+            let mut v: i64 = i64::from(r.read(w_bits)) + (1i64 << w_bits) - (1i64 << q);
+            let a4 = mean >> 2;
             let mut limit = 2 * a4;
             if v <= limit {
                 v = a4 + i64::from(zigzag(v as u32));
@@ -58,7 +58,7 @@ fn read_weights(r: &mut Mf<'_>) -> Result<(u32, Vec<(u8, u32)>)> {
             if w < 1 {
                 return corrupt("tans: weight below one");
             }
-            avg += limit - a4;
+            mean += limit - a4;
             total += w as u64;
             if total > u64::from(table_size) {
                 return corrupt("tans: weights exceed table size");
@@ -70,9 +70,9 @@ fn read_weights(r: &mut Mf<'_>) -> Result<(u32, Vec<(u8, u32)>)> {
         }
     } else {
         let count = r.read(3) as usize + 1;
-        let bps = 32 - lb.leading_zeros(); // floor(log2 lb) + 1
+        let bps = 32 - tb.leading_zeros(); // floor(log2 tb) + 1
         let mdb = r.read(bps);
-        if mdb < 1 || mdb > lb {
+        if mdb < 1 || mdb > tb {
             return corrupt("tans: sparse weight width");
         }
         let mut seen = [false; 256];
@@ -108,11 +108,11 @@ fn read_weights(r: &mut Mf<'_>) -> Result<(u32, Vec<(u8, u32)>)> {
     if r.overrun() {
         return corrupt("tans: table runs past the array");
     }
-    Ok((lb, out))
+    Ok((tb, out))
 }
 
-fn build_table(lb: u32, weights: &[(u8, u32)]) -> Result<Vec<Entry>> {
-    let size = 1usize << lb;
+fn build_table(tb: u32, weights: &[(u8, u32)]) -> Result<Vec<Entry>> {
+    let size = 1usize << tb;
     let mask = size - 1;
     let singles: Vec<u8> = weights.iter().filter(|e| e.1 == 1).map(|e| e.0).collect();
     let s_states = size - singles.len();
@@ -120,7 +120,7 @@ fn build_table(lb: u32, weights: &[(u8, u32)]) -> Result<Vec<Entry>> {
     for (i, &sym) in singles.iter().enumerate() {
         table[s_states + i] = Entry {
             symbol: sym,
-            nbits: lb as u8,
+            nbits: tb as u8,
             base: 0,
         };
     }
@@ -146,9 +146,9 @@ fn build_table(lb: u32, weights: &[(u8, u32)]) -> Result<Vec<Entry>> {
                 if cursor[j] >= region_end[j] {
                     return corrupt("tans: region overflow");
                 }
-                let ww = w + k;
-                let nbits = lb - ww.ilog2();
-                let base = ((ww << nbits) & mask) as u16;
+                let wv = w + k;
+                let nbits = tb - wv.ilog2();
+                let base = ((wv << nbits) & mask) as u16;
                 table[cursor[j]] = Entry {
                     symbol: sym,
                     nbits: nbits as u8,
@@ -163,13 +163,13 @@ fn build_table(lb: u32, weights: &[(u8, u32)]) -> Result<Vec<Entry>> {
     Ok(table)
 }
 
-pub(crate) fn decode(body: &[u8], dst_size: usize) -> Result<Vec<u8>> {
-    if dst_size < 5 || body.len() < 8 {
+pub(crate) fn decode(body: &[u8], out_len: usize) -> Result<Vec<u8>> {
+    if out_len < 5 || body.len() < 8 {
         return corrupt("tans: array too small");
     }
     let mut r = Mf::new(body);
-    let (lb, weights) = read_weights(&mut r)?;
-    let table = build_table(lb, &weights)?;
+    let (tb, weights) = read_weights(&mut r)?;
+    let table = build_table(tb, &weights)?;
     let p = r.byte_pos();
     if p >= body.len() {
         return corrupt("tans: no payload");
@@ -178,13 +178,13 @@ pub(crate) fn decode(body: &[u8], dst_size: usize) -> Result<Vec<u8>> {
     let mut f = Lf::new(payload);
     let mut b = Lb::new(payload);
     let mut st = [0usize; 5];
-    st[0] = f.read(lb) as usize;
-    st[1] = b.read(lb) as usize;
-    st[2] = f.read(lb) as usize;
-    st[3] = b.read(lb) as usize;
-    st[4] = f.read(lb) as usize;
-    let mut out = vec![0u8; dst_size];
-    let main = dst_size - 5;
+    st[0] = f.read(tb) as usize;
+    st[1] = b.read(tb) as usize;
+    st[2] = f.read(tb) as usize;
+    st[3] = b.read(tb) as usize;
+    st[4] = f.read(tb) as usize;
+    let mut out = vec![0u8; out_len];
+    let main = out_len - 5;
     let t = &table[..];
     let mut i = 0usize;
     while i < main {
