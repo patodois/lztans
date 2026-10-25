@@ -232,8 +232,7 @@ pub(crate) fn decode(body: &[u8], mode: u32, out: &mut [u8], pl: &Place) -> Resu
     }
     lits.run(out, p, end - p, lo, pl)?;
     // SPEC-QUESTION: exact use of the literal arrays is required although the
-    // spec calls it an observation and the oracle does not check it
-    // (QUESTIONS.md, item 4).
+    // spec calls it an observation only (QUESTIONS.md, item 4).
     if !lits.all_used() {
         return corrupt("leviathan: unused literals");
     }

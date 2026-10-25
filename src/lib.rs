@@ -86,8 +86,8 @@ pub fn decode(src: &[u8], dst: &mut [u8]) -> Result<usize> {
         if b0 & 0x0F != 0x0C || b0 & 0x30 != 0 {
             return Err(Error::Corrupt("bad block header"));
         }
-        // SPEC-QUESTION: the checksum flag is rejected as the spec says, although
-        // the oracle ignores it (QUESTIONS.md, item 1).
+        // SPEC-QUESTION: the checksum flag is rejected, as the spec says; its
+        // layout is not specified (QUESTIONS.md, item 1).
         if b1 & 0x80 != 0 {
             return Err(Error::Unsupported("checksummed blocks"));
         }
@@ -117,7 +117,7 @@ pub fn decode(src: &[u8], dst: &mut [u8]) -> Result<usize> {
         if size != 0x3_FFFF {
             let payload = src.get(ip..ip + size + 1).ok_or(Error::Truncated)?;
             ip += size + 1;
-            decode_quantum(payload, codec, dst, produced, left, base)?;
+            decode_payload(payload, codec, dst, produced, left, base)?;
         } else if v >> 18 == 1 {
             let fill = *src.get(ip).ok_or(Error::Truncated)?;
             ip += 1;
@@ -131,7 +131,7 @@ pub fn decode(src: &[u8], dst: &mut [u8]) -> Result<usize> {
 }
 
 /// Decode the sub-chunks of one quantum into `dst[block_start..block_start+left]`.
-fn decode_quantum(
+fn decode_payload(
     payload: &[u8],
     codec: Codec,
     dst: &mut [u8],

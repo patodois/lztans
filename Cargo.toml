@@ -11,6 +11,7 @@ repository = "https://github.com/patodois/lztans"
 keywords = ["decompression", "lz77", "huffman", "ans", "unpacker"]
 categories = ["compression"]
 publish = false
+exclude = ["QUESTIONS.md", ".github/"]
 
 [dependencies]
 

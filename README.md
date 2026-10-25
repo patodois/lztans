@@ -26,20 +26,23 @@ let consumed = lztans::decode(&compressed, &mut out)?;
 * Minimum supported Rust version 1.88 (checked: 1.88 builds and passes the tests, 1.87 does not).
 * `Error` is `#[non_exhaustive]`.
 
-## Clean-room provenance
+## How this was built
 
-The code was written from a prose format specification (`spec/` of the spec writer's repository,
-**spec commit `bb20c71`**) plus test vectors, by an implementer who never saw any existing decoder source.
-See `QUESTIONS.md` for the points where the specification was unclear and the assumption taken, and
-the `// SPEC-QUESTION:` markers in the code. Details of the procedure and its limits are in the spec
-writer's `CLEANROOM.md`; they apply to this crate unchanged (in particular: it cannot prove that the
-authors' training data did not contain similar code, and patents and trademarks are out of scope).
+The decoder was written from a prose description of the format (spec commit `bb20c71`) and a set of
+test vectors, by an implementer who did not read any existing decoder's source code. A reference decoder
+was used only as a black box: to produce expected hashes for the test vectors and to compare accept/reject
+behaviour on mutated inputs. Points where the description was unclear, and the assumption taken in each
+case, are recorded in
+[QUESTIONS.md](https://github.com/patodois/lztans/blob/main/QUESTIONS.md) and marked with
+`// SPEC-QUESTION:` in the code. The procedure cannot prove that nothing similar was in the authors'
+training data, and it does not address patents or trademarks; "Kraken", "Mermaid", "Selkie" and
+"Leviathan" are used here as format names only.
 
 ## Testing
 
 ```
 cargo test                                   # unit tests, synthetic vectors, fuzz-style tests
-LZTANS_CORPUS=/path/to/corpus cargo test     # additionally the 584 game-data vectors (kept out of git)
+LZTANS_CORPUS=/path/to/corpus cargo test     # additionally the 648 game-data vectors (kept out of git)
 LZTANS_FUZZ_ITERS=100000 LZTANS_FUZZ_SEED=7 cargo test --release --test fuzz -- --nocapture
 cargo run --release --example bench -- /path/to/corpus
 ```

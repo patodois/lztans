@@ -165,8 +165,7 @@
   "decompressed_size": 300,
   "expect": "reject",
   "sha256": null,
-  "note": "single-symbol old sparse description: invalid, rejected (spec 3.3.1)",
-  "oracle_error": "error: OozError"
+  "note": "single-symbol old sparse description: invalid, rejected (spec 3.3.1)"
  },
  {
   "id": "syn-huff-new-k0-ns2",
@@ -622,8 +621,7 @@
   "decompressed_size": 140,
   "expect": "reject",
   "sha256": null,
-  "note": "Kraken, run of 5 delta literals after a match at distance 3",
-  "oracle_sha256": "9e92aae347af2ebc59821fe32d74cc6967bad1e997639b5db6d846cd96d6f785"
+  "note": "Kraken, run of 5 delta literals after a match at distance 3"
  },
  {
   "id": "syn-reject-delta-run-kraken-final-m0",
@@ -631,8 +629,7 @@
   "decompressed_size": 231,
   "expect": "reject",
   "sha256": null,
-  "note": "Kraken, final run of 20 delta literals after a match at distance 3",
-  "oracle_sha256": "bb00a81e048dd58a14b91e480f2bf5b4736594f8c7ccaeb7eb66ae04c3bcc0ee"
+  "note": "Kraken, final run of 20 delta literals after a match at distance 3"
  },
  {
   "id": "syn-reject-delta-run-mermaid-mid-m0",
@@ -640,8 +637,7 @@
   "decompressed_size": 127,
   "expect": "reject",
   "sha256": null,
-  "note": "Mermaid, run of 5 delta literals after a match at distance 3",
-  "oracle_sha256": "3e782d7e1a708aab503cbf8aacad37fca91490d6610c1933c5159504153b61d5"
+  "note": "Mermaid, run of 5 delta literals after a match at distance 3"
  },
  {
   "id": "syn-reject-delta-run-mermaid-final-m0",
@@ -649,8 +645,7 @@
   "decompressed_size": 222,
   "expect": "reject",
   "sha256": null,
-  "note": "Mermaid, final run of 20 delta literals after a match at distance 3",
-  "oracle_sha256": "c312a12e3fe53361079f3953224f98b59468af3b69c15889021bd11a199941df"
+  "note": "Mermaid, final run of 20 delta literals after a match at distance 3"
  },
  {
   "id": "syn-reject-delta-run-leviathan-mid-m0",
@@ -658,8 +653,7 @@
   "decompressed_size": 140,
   "expect": "reject",
   "sha256": null,
-  "note": "Leviathan, run of 5 delta literals after a match at distance 3",
-  "oracle_sha256": "a78b680594d7f247986c4c3fd0b9a0459b5ac7c9cfdf886775b5a2f9e42fc835"
+  "note": "Leviathan, run of 5 delta literals after a match at distance 3"
  },
  {
   "id": "syn-reject-delta-run-leviathan-final-m0",
@@ -667,8 +661,7 @@
   "decompressed_size": 231,
   "expect": "reject",
   "sha256": null,
-  "note": "Leviathan, final run of 20 delta literals after a match at distance 3",
-  "oracle_sha256": "2438a38477c5d269ec71c9574cfba1e142c16116daa433f719f261fbe2f3f8bd"
+  "note": "Leviathan, final run of 20 delta literals after a match at distance 3"
  },
  {
   "id": "syn-ok-delta-run-kraken-mid-m1",
@@ -724,8 +717,7 @@
   "decompressed_size": 69,
   "expect": "reject",
   "sha256": null,
-  "note": "Kraken, 40-byte match at distance 3 (overlapping, distance < 8)",
-  "oracle_sha256": "5e9251f1e6417d13806062df6bd83acba82ed37da6d058c3901d9d61296297aa"
+  "note": "Kraken, 40-byte match at distance 3 (overlapping, distance < 8)"
  },
  {
   "id": "syn-ok-short-distance-no-overlap-kraken",
@@ -749,8 +741,7 @@
   "decompressed_size": 227,
   "expect": "reject",
   "sha256": null,
-  "note": "Mermaid, two far offsets for one far-offset command: the second is unused",
-  "oracle_sha256": "d209a18470731fbfc9c8e48a6c17cc81a4df48c90f391c9efbb153756a92e2dd"
+  "note": "Mermaid, two far offsets for one far-offset command: the second is unused"
  },
  {
   "id": "syn-reject-mermaid-second-list-single-piece",
@@ -758,8 +749,7 @@
   "decompressed_size": 227,
   "expect": "reject",
   "sha256": null,
-  "note": "Mermaid, sub-chunk of 227 bytes (one piece) with a second far-offset list of 1 entry",
-  "oracle_sha256": "baeb4bdb7ffd46cc9326cb2385cd16666146a70b2543867612d8927e760ad924"
+  "note": "Mermaid, sub-chunk of 227 bytes (one piece) with a second far-offset list of 1 entry"
  },
  {
   "id": "syn-prefix-base",
@@ -791,8 +781,6 @@
   "decompressed_size": 100000,
   "expect": "unspecified",
   "sha256": null,
-  "oracle_sha256": null,
-  "oracle_error": "error: OozError",
   "note": "prefix of 100000 bytes: not a block boundary, no result is guaranteed (spec 1.7); informational only"
  }
 ]
