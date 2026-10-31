@@ -1,0 +1,2 @@
+# Exceptions to the public-tree gate. Each one needs a reason after '#'; `blob=` pins the entry to exact files.
+tests/vectors/syn-*.bin max=1048576 # synthetic vectors built from random bytes by our own encoder, no game data (tests/vectors/README.md)
