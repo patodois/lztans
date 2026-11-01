@@ -10,7 +10,7 @@ readme = "README.md"
 repository = "https://github.com/patodois/lztans"
 keywords = ["decompression", "lz77", "huffman", "ans", "unpacker"]
 categories = ["compression"]
-exclude = ["QUESTIONS.md", ".github/"]
+exclude = ["QUESTIONS.md", ".github/", "fuzz/"]
 
 [dependencies]
 
