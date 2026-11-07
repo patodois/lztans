@@ -1,7 +1,8 @@
 # Questions for the spec writer
 
-Written during the first implementation (spec commit `22e0937`) and revised for spec commit
-`bb20c71`, which settled items 3 and part of 4 and renamed several terms. Names below use the new terms. Each item says what
+Written during the first implementation (spec commit `22e0937`) and revised for spec commits
+`bb20c71`, which settled items 3 and part of 4 and renamed several terms, and `03de3f4`, which bounds an RLE's nested
+work array by the array grammar instead of by the RLE's output size. Names below use the new terms. Each item says what
 was unclear, which assumption the code makes (marked `// SPEC-QUESTION:` in the
 source where it lives), and what the oracle showed when it could be asked.
 

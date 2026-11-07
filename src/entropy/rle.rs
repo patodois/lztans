@@ -1,6 +1,6 @@
 //! RLE arrays (array type 3).
 
-use super::read_array;
+use super::{read_array, MAX_ARRAY};
 use crate::error::{corrupt, Result};
 
 pub(crate) fn decode(body: &[u8], out_len: usize, depth: u32) -> Result<Vec<u8>> {
@@ -10,12 +10,15 @@ pub(crate) fn decode(body: &[u8], out_len: usize, depth: u32) -> Result<Vec<u8>>
     if body.len() == 1 {
         return Ok(vec![body[0]; out_len]);
     }
-    // Work buffer: literals from the front, commands from the back.
+    // Work buffer: literals from the front, commands from the back. A nested
+    // array is bounded by the array grammar, not by `out_len`: fill changes consume
+    // work without emitting output. Every command below is still checked against
+    // the output space that remains before it expands anything.
     let owned;
     let w: &[u8] = if body[0] != 0 {
-        let (arr, n) = read_array(body, out_len, depth + 1)?;
-        let mut v = Vec::with_capacity(arr.len() + body.len() - n);
-        v.extend_from_slice(&arr);
+        let (arr, n) = read_array(body, MAX_ARRAY, depth + 1)?;
+        let mut v = arr.into_owned();
+        v.reserve_exact(body.len() - n);
         v.extend_from_slice(&body[n..]);
         owned = v;
         &owned

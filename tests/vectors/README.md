@@ -28,4 +28,5 @@ Several entries may share one `file` with different `decompressed_size` (the ali
 | `syn-reject-overlap-short-distance-kraken`, `syn-ok-short-distance-no-overlap-kraken` | match with distance below 8: overlapping rejects, non-overlapping decodes (4.4) |
 | `syn-reject-mermaid-far-unused`, `syn-reject-mermaid-second-list-single-piece`, `syn-ok-mermaid-far-used` | Mermaid far-offset validity (6.1, 6.3) |
 | `syn-prefix-*` | aligned prefixes of a three-block stream decode to the first bytes of the full output (1.7) |
+| `syn-nested-rle-work*.bin` | RLE array whose nested work array (130 and 262,144 bytes) is longer than its 64 or 127 output bytes (3.5); listed in `tests/nested_rle.rs`, not in `synthetic.json` |
 | `ex-*` | the worked examples of spec/10 |

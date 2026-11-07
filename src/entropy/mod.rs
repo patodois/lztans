@@ -14,6 +14,11 @@ pub(crate) use sliced::read_sliced;
 // SPEC-QUESTION: the spec gives no nesting bound (QUESTIONS.md, item 8).
 const MAX_DEPTH: u32 = 24;
 
+/// Largest decoded size any array header can express (2^18 bytes). Used as the
+/// call-site limit for an array nested in an RLE body, whose work may be longer
+/// than the RLE's own output because fill changes consume work without emitting.
+pub(crate) const MAX_ARRAY: usize = 1 << 18;
+
 /// Decode one array from the start of `src`. `limit` is the largest decoded size
 /// the caller accepts. Returns the bytes and the number of input bytes used.
 pub(crate) fn read_array(src: &[u8], limit: usize, depth: u32) -> Result<(Cow<'_, [u8]>, usize)> {

@@ -17,6 +17,10 @@ let consumed = lztans::decode(&compressed, &mut out)?;
   corpus streams, and at most about 0.3 MiB over several million mutated and random inputs
   (`tests/fuzz.rs`). No larger hostile case has been constructed, so no tighter worst-case figure is
   claimed.
+* An array nested in an RLE array is bounded by the array grammar (262,144 bytes), not by the RLE's own
+  output size, because fill changes consume work without emitting output. Each command is still checked
+  against the output that remains before it expands anything, so a small input cannot make the decoder
+  write past the output or reserve more than that bound (`tests/nested_rle_memory.rs`).
 * Prefixes: a destination whose length is a multiple of 262,144 bytes and at most the true size decodes
   to the first bytes of the full output (spec 1.7); other lengths below the true size are not
   guaranteed and usually return an error.
@@ -28,7 +32,7 @@ let consumed = lztans::decode(&compressed, &mut out)?;
 
 ## How this was built
 
-The decoder was written from a prose description of the format (spec commit `bb20c71`) and a set of
+The decoder was written from a prose description of the format (spec commit `03de3f4`) and a set of
 test vectors, by an implementer who did not read any existing decoder's source code. A reference decoder
 was used only as a black box: to produce expected hashes for the test vectors and to compare accept/reject
 behaviour on mutated inputs. Points where the description was unclear, and the assumption taken in each
@@ -49,7 +53,7 @@ cargo run --release --example bench -- /path/to/corpus
 
 `tests/vectors/` holds the synthetic vectors (generated, contain no game data) with an `expect` field
 per entry: 87 must decode to their SHA-256, 10 must be rejected, 1 (an unaligned prefix) is
-unspecified and only must not panic. The aligned-prefix vectors test the prefix rule. The corpus is game data and is never committed.
+unspecified and only must not panic. The aligned-prefix vectors test the prefix rule. `syn-nested-rle-work*.bin` hold RLE arrays whose nested work is longer than their output (`tests/nested_rle.rs`). The corpus is game data and is never committed.
 
 ## Licence
 
