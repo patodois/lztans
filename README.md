@@ -1,7 +1,6 @@
 # lztans
 
-A safe, dependency-free Rust decoder for a family of block-compressed streams that combine an LZ77
-stage with Huffman, tANS and run-length entropy coding. It decodes the block formats commonly called
+lztans is a safe, dependency-free Rust decoder for developers reading block-compressed streams that combine LZ77 with Huffman, tANS and run-length entropy coding. It decodes the block formats commonly called
 **Kraken**, **Mermaid / Selkie** and **Leviathan** (format names only: this crate is not affiliated with
 the owners of those names and is not derived from any implementation of them).
 
