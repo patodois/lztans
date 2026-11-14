@@ -117,7 +117,15 @@ pub fn decode(src: &[u8], dst: &mut [u8]) -> Result<usize> {
         if size != 0x3_FFFF {
             let payload = src.get(ip..ip + size + 1).ok_or(Error::Truncated)?;
             ip += size + 1;
-            decode_payload(payload, codec, dst, produced, left, base)?;
+            // The payload is complete here, so a field running past the end of its
+            // enclosing region is corruption, not a short input.
+            decode_payload(payload, codec, dst, produced, left, base).map_err(|e| {
+                if e == Error::Truncated {
+                    Error::Corrupt("field runs past its enclosing region")
+                } else {
+                    e
+                }
+            })?;
         } else if v >> 18 == 1 {
             let fill = *src.get(ip).ok_or(Error::Truncated)?;
             ip += 1;
