@@ -96,10 +96,15 @@ fn read_concat(body: &[u8], out_len: usize, depth: u32) -> Result<Vec<u8>> {
         return corrupt("concatenated array: count or size too small");
     }
     if b & 0x80 == 0 {
-        let mut out: Vec<u8> = Vec::with_capacity(out_len);
+        // The buffer is reserved once the first part is back, so a chain of
+        // nested concatenations never holds a full-size buffer per level.
+        let mut out: Vec<u8> = Vec::new();
         let mut pos = 1usize;
         for _ in 0..n {
             let (a, used) = read_array(&body[pos..], out_len - out.len(), depth + 1)?;
+            if out.capacity() == 0 {
+                out.reserve_exact(out_len);
+            }
             out.extend_from_slice(&a);
             pos += used;
         }

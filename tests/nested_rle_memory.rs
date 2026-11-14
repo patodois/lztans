@@ -3,6 +3,8 @@
 //!
 //! This file has one test on purpose: the allocator counters are process-wide.
 
+mod common;
+
 use std::alloc::{GlobalAlloc, Layout, System};
 use std::sync::atomic::{AtomicUsize, Ordering};
 
@@ -67,9 +69,10 @@ fn peak_of(data: &[u8], size: usize) -> (usize, bool, bool) {
     (extra, ok, buf[size] == 0xEE)
 }
 
+const MAX_ARRAY: usize = 1 << 18;
+
 #[test]
 fn nested_work_at_the_limit_stays_within_the_format_bound() {
-    const MAX_ARRAY: usize = 1 << 18;
     // The format's bound for one RLE level: the nested array (at most 262,144 bytes)
     // plus the rest of the RLE body (shorter than the RLE's own output), plus the
     // output being built (the RLE's own output).
@@ -109,4 +112,42 @@ fn nested_work_at_the_limit_stays_within_the_format_bound() {
     );
     assert!(!ok && canary);
     assert!(extra <= bound(100), "{extra}");
+
+    // 4. Nested concatenations around a sliced container whose combined index list is
+    //    all zeros, inside an RLE: 239 input bytes, refused. No level may hold a
+    //    full-size buffer while its first part decodes, and the container must not
+    //    keep one length per list entry.
+    let adversarial = concat_chain_in_rle();
+    assert_eq!(adversarial.len(), 239);
+    let (extra, ok, canary) = peak_of(&adversarial, 1000);
+    println!("refused, 22 concatenations around a sliced container in an RLE: peak {extra} bytes");
+    assert!(!ok && canary);
+    assert!(extra <= 2 << 20, "{extra}");
+}
+
+/// Type-5 sliced container of `l` bytes: two sources (`l - 1` bytes of 0x41 and one
+/// 0x42), no interval length bits, and a combined index list of `l` zero bytes.
+fn sliced_zero_index(l: usize) -> Vec<u8> {
+    let mut body = vec![0x82u8];
+    body.extend(common::long(3, l - 1, &[0x41]));
+    body.extend(common::stored_short(&[0x42]));
+    body.extend_from_slice(&[0x00, 0x80]);
+    body.extend(common::long(3, l, &[0x00]));
+    common::long(5, l, &body)
+}
+
+/// 22 nested two-part concatenations around `sliced_zero_index`, as the work array
+/// of an RLE whose output is 1000 bytes.
+fn concat_chain_in_rle() -> Vec<u8> {
+    let mut l = MAX_ARRAY - 22;
+    let mut inner = sliced_zero_index(l);
+    for _ in 0..22 {
+        let mut body = vec![0x02u8];
+        body.extend(&inner);
+        body.extend(common::stored_short(&[0x43]));
+        l += 1;
+        inner = common::long(5, l, &body);
+    }
+    inner.extend_from_slice(&[0x01; 8]);
+    stream(&rle(1000, &inner))
 }

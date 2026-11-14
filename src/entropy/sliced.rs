@@ -78,9 +78,6 @@ pub(crate) fn read_sliced(
         index = a.into_owned();
         exps = e.into_owned();
     }
-    if index.len() > total {
-        return corrupt("sliced container: too many intervals");
-    }
     if vb > src.len() - pos {
         return Err(Error::Truncated);
     }
@@ -92,15 +89,18 @@ pub(crate) fn read_sliced(
     }
     let mut fwd = Mf::new(streams);
     let mut bwd = Mb::new(streams);
-    let mut lens: Vec<usize> = Vec::with_capacity(n_exp);
-    for (i, &e) in exps.iter().take(n_exp).enumerate() {
-        let e = u32::from(e);
-        let r = if i % 2 == 0 { fwd.read(e) } else { bwd.read(e) };
-        lens.push((1usize << e) + r as usize);
-    }
-    if fwd.overrun() || bwd.overrun() {
-        return corrupt("sliced container: interval length streams overrun");
-    }
+    // Length of list entry `i`, read when the assembly reaches it: entries are read
+    // in list order, even ones from the forward stream, odd ones from the backward
+    // stream. No list of lengths is kept.
+    let mut length = |i: usize| -> usize {
+        let e = u32::from(exps[i]);
+        let r = if i.is_multiple_of(2) {
+            fwd.read(e)
+        } else {
+            bwd.read(e)
+        };
+        (1usize << e) + r as usize
+    };
 
     let mut cursors = vec![0usize; n_in];
     let mut ci = 0usize;
@@ -120,9 +120,10 @@ pub(crate) fn read_sliced(
             if s > n_in {
                 return corrupt("sliced container: source index out of range");
             }
-            let len = *lens
-                .get(cl)
-                .ok_or(Error::Corrupt("sliced container: length list ended"))?;
+            if cl >= n_exp {
+                return corrupt("sliced container: length list ended");
+            }
+            let len = length(cl);
             cl += 1;
             let c = cursors[s - 1];
             let srcarr = &sources[s - 1];
@@ -133,12 +134,19 @@ pub(crate) fn read_sliced(
             cursors[s - 1] = c + len;
         }
         if combined {
+            // The terminator's entry is read too, to keep the streams in step.
+            if cl < n_exp {
+                length(cl);
+            }
             cl += 1;
         }
         outs.push(o);
     }
     if ci != index.len() || cl != n_exp {
         return corrupt("sliced container: unused intervals");
+    }
+    if fwd.overrun() || bwd.overrun() {
+        return corrupt("sliced container: interval length streams overrun");
     }
     for (c, s) in cursors.iter().zip(sources.iter()) {
         if *c != s.len() {
