@@ -65,7 +65,7 @@ KIB = 1024
 MIB = 1024 * KIB
 DEFAULT_MAX_BINARY = 256 * KIB
 DEFAULT_MAX_TEXT = 2 * MIB
-SCAN_CAP = 1 * MIB          # content rules read at most this much of a blob; bigger blobs hit the size rules
+SCAN_CAP = 1 * MIB          # content rules read at most this much of a blob (the first SCAN_CAP bytes of a bigger one)
 BINARY_PROBE = 8000
 HEADER_LINES = 60           # copyright headers are looked for in the first lines of a file
 CHUNK_BYTES = 32 * MIB      # blobs are read in batches of at most this many bytes (RAM bound)
@@ -537,6 +537,13 @@ def audit(git, rules, repo, entries):
         binary[sha] = is_binary(data)
         if not binary[sha]:
             content_by_blob[sha] = data.decode("utf-8", "replace")
+    # A bigger text blob may still be under the text size limit: scan its first SCAN_CAP bytes.
+    for sha in shas:
+        if sizes[sha] > SCAN_CAP:
+            head = git.probe(sha, SCAN_CAP)
+            binary[sha] = is_binary(head)
+            if not binary[sha] and lfs_size(head) is None:
+                content_by_blob[sha] = head.decode("utf-8", "replace")
 
     # 2. every (path, blob) pair
     for path, sha, mode, commit in entries:

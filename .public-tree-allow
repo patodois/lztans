@@ -1,2 +1,3 @@
 # Exceptions to the public-tree gate. Each one needs a reason after '#'; `blob=` pins the entry to exact files.
-tests/vectors/syn-*.bin max=1048576 # synthetic vectors built from random bytes by our own encoder, no game data (tests/vectors/README.md)
+tests/vectors/syn-prefix-base.bin max=263530 blob=928e3a929b26 # synthetic vector built from random bytes by our own encoder, no game data (tests/vectors/README.md)
+tests/vectors/syn-stored-then-memset.bin max=262152 blob=a2de24e12da0 # synthetic vector built from random bytes by our own encoder, no game data (tests/vectors/README.md)
