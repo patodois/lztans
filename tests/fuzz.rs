@@ -1,5 +1,7 @@
 //! Fuzz-style robustness test: mutated and random inputs must be rejected or
-//! decoded without panics, without long run times and with bounded memory.
+//! decoded without panics, each in under 10 s, with the decoder's heap below
+//! 4 MiB and no single allocation above 2 MiB (the largest crafted case,
+//! in `hostile_headers`, takes 1.5 MiB and one allocation of 1 MiB).
 //!
 //! `LZTANS_FUZZ_SEED` seeds the generator. `LZTANS_FUZZ_ITERS` sets the number of cases per seed (default 3000);
 //! `LZTANS_CORPUS` adds the game-data corpus as seed material when available.

@@ -107,6 +107,8 @@ pub(crate) fn read_side_streams(
                     .ok_or(Error::Corrupt("offset extras"))?;
                 od * u64::from(scale) + u64::from(x)
             };
+            // SPEC-QUESTION: a zero distance is refused here already
+            // (QUESTIONS.md, item 6).
             if d == 0 {
                 return corrupt("scaled offset: zero distance");
             }
@@ -170,6 +172,8 @@ pub(crate) fn copy_match(
     pl: &Place,
     limit: usize,
 ) -> Result<()> {
+    // SPEC-QUESTION: a source before the window start, or a zero distance, is
+    // refused (QUESTIONS.md, item 6).
     if p < pl.base || dist == 0 || dist > p - pl.base {
         return corrupt("match reaches before the window");
     }
@@ -213,6 +217,8 @@ pub(crate) fn copy_raw(
     n: usize,
     limit: usize,
 ) -> Result<()> {
+    // SPEC-QUESTION: a run past the end of its literal array is refused
+    // (QUESTIONS.md, item 5).
     if n > limit - p || n > lit.len() - *cur {
         return corrupt("literal run beyond its array or sub-chunk");
     }
@@ -235,6 +241,8 @@ pub(crate) fn copy_delta(
     if n == 0 {
         return Ok(());
     }
+    // SPEC-QUESTION: a run past the end of its literal array is refused
+    // (QUESTIONS.md, item 5).
     if n > win.limit - p || n > lit.len() - *cur {
         return corrupt("literal run beyond its array or sub-chunk");
     }

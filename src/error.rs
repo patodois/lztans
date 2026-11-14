@@ -5,11 +5,14 @@ use core::fmt;
 /// Reason why a stream could not be decoded.
 ///
 /// The decoder never panics on malformed input; every violation of the format
-/// is reported as one of these values.
+/// it detects is reported as one of these values. Not every damaged stream is
+/// detected: the format has no checksum this crate checks, so a stream can
+/// decode to wrong bytes without an error.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum Error {
-    /// The input ended before the stream was complete.
+    /// The input ended before the stream was complete. A field that runs past
+    /// its enclosing region inside a complete input is [`Error::Corrupt`].
     Truncated,
     /// The stream breaks a rule of the format. The text names the rule.
     Corrupt(&'static str),

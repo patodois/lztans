@@ -13,10 +13,12 @@ let consumed = lztans::decode(&compressed, &mut out)?;
 * Allocations are bounded by the sizes the stream's headers can prove: every array is at most
   256 KiB, sub-chunks produce at most 128 KiB, nesting is capped at 24 levels, and the arrays of one
   quantum may decode to at most 16 MiB in total (QUESTIONS.md, item 13). Measured working
-  memory (heap above the caller's output buffer, `examples/peak.rs`): at most 376 KiB over all 648
-  corpus streams, and at most about 0.3 MiB over several million mutated and random inputs
-  (`tests/fuzz.rs`). No larger hostile case has been constructed, so no tighter worst-case figure is
-  claimed.
+  memory (heap above the caller's output buffer): at most 372 KiB over all 648 corpus streams
+  (`examples/peak.rs`) and 252 KiB over 1.5 million mutated and random inputs (`tests/fuzz.rs`).
+  Crafted inputs reach more: 1.0 MiB from 239 bytes (nested concatenations around a sliced
+  container, `tests/nested_rle_memory.rs`) and 1.5 MiB from 47 bytes (a Kraken sub-chunk whose
+  131,072 offsets are expanded before any command runs, `tests/fuzz.rs`). Adding up what one Kraken
+  sub-chunk can hold at once gives about 1.7 MiB; that is an estimate, not a proven bound.
 * An array nested in an RLE array is bounded by the array grammar (262,144 bytes), not by the RLE's own
   output size, because fill changes consume work without emitting output. Each command is still checked
   against the output that remains before it expands anything, so a small input cannot make the decoder
@@ -45,7 +47,7 @@ training data, and it does not address patents or trademarks; "Kraken", "Mermaid
 ## Testing
 
 ```
-cargo test                                   # unit tests, synthetic vectors, fuzz-style tests
+cargo test                                   # unit tests, synthetic vectors, round trips, fuzz-style tests
 LZTANS_CORPUS=/path/to/corpus cargo test     # additionally the 648 game-data vectors (kept out of git)
 LZTANS_FUZZ_ITERS=100000 LZTANS_FUZZ_SEED=7 cargo test --release --test fuzz -- --nocapture
 cargo run --release --example bench -- /path/to/corpus

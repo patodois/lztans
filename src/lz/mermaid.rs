@@ -105,6 +105,8 @@ pub(crate) fn decode(
     let window_pos = pl.start - pl.base;
     let mut far: [Vec<usize>; 2] = [Vec::new(), Vec::new()];
     for (piece, count) in [n1, n2].into_iter().enumerate() {
+        // SPEC-QUESTION: `P` in the bound is the window position of the
+        // sub-chunk's first byte (QUESTIONS.md, item 12).
         let bound = window_pos + piece * PIECE;
         if count > body.len() - cur.pos {
             return Err(Error::Truncated);

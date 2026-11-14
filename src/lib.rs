@@ -22,7 +22,9 @@
 //!
 //! Malformed input yields an [`Error`]; the decoder does not panic, does not use
 //! `unsafe` and bounds every allocation by the sizes it can prove from the
-//! stream's own headers (at most a few megabytes per sub-chunk).
+//! stream's own headers. Its working memory above `dst` measured at most 372 KiB
+//! on real streams and 1.5 MiB on inputs crafted to maximise it. Not every damaged
+//! stream is detected: the format has no checksum this crate checks.
 //!
 //! Not supported (rejected with [`Error::Unsupported`]): the LZNA and BitKnit
 //! codecs and streams with checksums.

@@ -17,6 +17,8 @@ impl<'a> Literals<'a> {
     fn take(&mut self, idx: usize) -> Result<u8> {
         let a = &self.arrays[idx];
         let c = self.cur[idx];
+        // SPEC-QUESTION: a literal past the end of its array is refused
+        // (QUESTIONS.md, item 5).
         let b = *a
             .get(c)
             .ok_or(Error::Corrupt("leviathan: literal array exhausted"))?;
@@ -31,7 +33,9 @@ impl<'a> Literals<'a> {
         }
         if matches!(self.mode, 2 | 3 | 5) && dist < 8 && n > dist {
             // Spec 4.5: applies to every delta run, including the first literal
-            // of a Delta2 run (the whole run is measured).
+            // of a Delta2 run.
+            // SPEC-QUESTION: for Delta2 the whole run is measured against the last
+            // distance, not only its first literal (QUESTIONS.md, item 3).
             return corrupt("delta literal run longer than a last distance below 8");
         }
         let win = Win {
@@ -233,6 +237,8 @@ pub(crate) fn decode(
         } else {
             mlc + 2
         };
+        // SPEC-QUESTION: a long match may end anywhere up to the end of the
+        // sub-chunk; no bytes have to remain after it (QUESTIONS.md, item 7).
         copy_match(out, p, dist, mlen, pl, end)?;
         p += mlen;
     }
