@@ -250,9 +250,9 @@ pub(crate) struct HuffTable {
 fn build_table(lists: &LengthLists) -> Result<HuffTable> {
     let mut entries = vec![0u16; TABLE_SIZE];
     let mut slot = 0usize;
-    for len in 1..=MAX_LEN {
+    for (len, list) in lists.lists.iter().enumerate().skip(1) {
         let width = 1usize << (MAX_LEN - len);
-        for &s in &lists.lists[len] {
+        for &s in list {
             if slot + width > TABLE_SIZE {
                 return corrupt("huffman: code space overfull");
             }
