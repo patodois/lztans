@@ -62,12 +62,18 @@ enum Codec {
 /// probe the start of a long stream, or to grow an output buffer geometrically).
 /// For any other length below the true size the result is not guaranteed: the last
 /// block is then decoded with sizes different from those it was encoded with and the
-/// call usually fails (it never panics). A length above the true size fails with
-/// [`Error::Truncated`].
+/// call usually fails (it never panics).
 ///
-/// Returns the number of input bytes consumed. Input bytes after the end of the
-/// stream are ignored. An empty `dst` decodes to nothing without looking at the
-/// input.
+/// A length above the true size can be reported as an error only when the input ends
+/// where the stream ends, and even then not always (a memset block at the end fills
+/// the extra bytes with its value). When more input follows the stream, the decoder
+/// reads it as if it belonged to the stream, and the call may succeed with undefined
+/// bytes at the end of `dst`. The format has no checksum this crate checks, so a
+/// caller that knows the compressed size should compare it with the returned count.
+///
+/// Returns the number of input bytes consumed. With the exact length, input bytes
+/// after the end of the stream are ignored. An empty `dst` decodes to nothing without
+/// looking at the input.
 ///
 /// # Errors
 ///
