@@ -41,7 +41,8 @@ pub(crate) fn decode(body: &[u8], mode: u32, out: &mut [u8], pl: &Place) -> Resu
     }
     let delta = mode == 0;
     let sub_len = pl.sub_len();
-    let mut pos = raw_prefix(body, out, pl)?;
+    let prefix = raw_prefix(body, out, pl)?;
+    let mut pos = prefix;
     let (lit, n) = read_array(&body[pos..], sub_len, 0)?;
     pos += n;
     let (cmd, n) = read_array(&body[pos..], sub_len, 0)?;
@@ -122,7 +123,7 @@ pub(crate) fn decode(body: &[u8], mode: u32, out: &mut [u8], pl: &Place) -> Resu
 
     // Command walk.
     let end = pl.end;
-    let mut p = pl.start + pos_prefix(pl);
+    let mut p = pl.start + prefix;
     let mut recent = 8usize;
     let mut lit_cur = 0usize;
     let mut near_cur = 0usize;
@@ -230,14 +231,6 @@ pub(crate) fn decode(body: &[u8], mode: u32, out: &mut [u8], pl: &Place) -> Resu
         return corrupt("mermaid: unused length bytes");
     }
     Ok(())
-}
-
-fn pos_prefix(pl: &Place) -> usize {
-    if pl.start == pl.base {
-        8
-    } else {
-        0
-    }
 }
 
 /// Distance of a far match whose source is `v` bytes before `piece_base`.
