@@ -4,6 +4,8 @@
 //! `LZTANS_FUZZ_SEED` seeds the generator. `LZTANS_FUZZ_ITERS` sets the number of cases per seed (default 3000);
 //! `LZTANS_CORPUS` adds the game-data corpus as seed material when available.
 
+mod common;
+
 use std::alloc::{GlobalAlloc, Layout, System};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -101,6 +103,7 @@ struct Seed {
     name: String,
     data: Vec<u8>,
     size: usize,
+    synthetic: bool,
 }
 
 fn load_seeds() -> Vec<Seed> {
@@ -134,9 +137,12 @@ fn load_seeds() -> Vec<Seed> {
                 name,
                 data: fs::read(&p).unwrap(),
                 size,
+                synthetic: true,
             });
         }
     }
+    // Every file the JSON names was found.
+    assert_eq!(seeds.len(), sizes.len());
     if let Some(dir) = std::env::var_os("LZTANS_CORPUS") {
         let dir = Path::new(&dir);
         for m in ["manifest.tsv", "entropy_manifest.tsv"] {
@@ -149,6 +155,7 @@ fn load_seeds() -> Vec<Seed> {
                         name: c[1].to_string(),
                         data,
                         size: c[2].parse().unwrap(),
+                        synthetic: false,
                     });
                 }
             }
@@ -190,8 +197,8 @@ fn mutated_and_random_inputs() {
         .and_then(|v| v.parse().ok())
         .unwrap_or(3000);
     let seeds = load_seeds();
-    let synthetic = seeds.len();
-    assert!(synthetic >= 90);
+    let synthetic = seeds.iter().filter(|s| s.synthetic).count();
+    assert!(synthetic > 0);
     let mut st = Stats {
         cases: 0,
         ok: 0,
@@ -261,11 +268,14 @@ fn mutated_and_random_inputs() {
         st.peak / 1024,
         st.biggest / 1024
     );
-    // Output buffers are allocated by the test itself (up to 400 kB); the
-    // decoder's own working set must stay far below this bound.
-    assert!(st.peak < 64 << 20, "peak heap {} bytes", st.peak);
+    // The output buffer is allocated before the measurement starts. The largest
+    // working set constructed so far is 1.5 MiB (a 47-byte Kraken sub-chunk whose
+    // 131,072 offsets are read before any command runs, one 1 MiB allocation);
+    // adding up the arrays a Kraken sub-chunk can hold at once gives about 1.7 MiB.
+    // These bounds leave room above that and catch anything of a larger order.
+    assert!(st.peak < 4 << 20, "peak heap {} bytes", st.peak);
     assert!(
-        st.biggest < 16 << 20,
+        st.biggest <= 2 << 20,
         "single allocation {} bytes",
         st.biggest
     );
@@ -305,5 +315,25 @@ fn hostile_headers() {
     for (i, (d, size)) in cases.iter().enumerate() {
         run_case(d, *size, &mut st, &format!("hostile {i}"));
     }
+    // The largest working set constructed so far: a 47-byte Kraken sub-chunk
+    // whose 131,072 offset codes (with scale extras) are expanded before any command.
+    let mut body = vec![0x11u8; 8];
+    body.extend(common::long(3, 131_064, &[0x41]));
+    body.extend(common::long(3, 131_072, &[0x00]));
+    body.push(0x81);
+    body.extend(common::long(3, 131_072, &[0x00]));
+    body.extend(common::long(3, 131_072, &[0x00]));
+    body.extend(common::stored_short(&[]));
+    body.extend_from_slice(&[0x80; 4]);
+    let kraken = common::block(0x06, &common::lz_sub(1, &body));
+    assert_eq!(kraken.len(), 47);
+    run_case(&kraken, 131_072, &mut st, "kraken offsets");
     assert_eq!(st.ok, 1, "only the memset block is valid");
+    assert!(st.peak < 4 << 20, "peak heap {} bytes", st.peak);
+    assert!(st.biggest <= 2 << 20, "single allocation {}", st.biggest);
+    eprintln!(
+        "hostile headers: peak extra heap {} KiB, biggest single allocation {} KiB",
+        st.peak / 1024,
+        st.biggest / 1024
+    );
 }

@@ -18,7 +18,7 @@ Several entries may share one `file` with different `decompressed_size` (the ali
 
 | Prefix | What it tests |
 |--------|----------------|
-| `syn-stored-*`, `syn-two-*` | stored block flag, stored sub-chunk, entropy-only sub-chunk, memset block after a stored one |
+| `syn-stored-*`, `syn-two-*` | stored block flag, stored sub-chunk, memset block after a stored one; `syn-two-entropy-subchunks` holds a single entropy-only sub-chunk with a stored array (the name is older than its content) |
 | `syn-huff-old-dense-*` | old Huffman code description, dense form (3.3.1), all values of the Rice parameter k |
 | `syn-huff-old-sparse-*` | old sparse form, unsorted symbol order |
 | `syn-huff-new-*` | new description with 2..256 symbols, k = 0..3, symbols in several runs |

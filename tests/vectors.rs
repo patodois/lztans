@@ -13,6 +13,9 @@ fn sha(data: &[u8]) -> String {
     hex(&Sha256::digest(data))
 }
 
+/// Vector files checked by `tests/nested_rle.rs` instead of `synthetic.json`.
+const NOT_IN_JSON: [&str; 2] = ["syn-nested-rle-work.bin", "syn-nested-rle-work-max.bin"];
+
 /// One synthetic entry: file, size, expectation, digest.
 struct Entry {
     id: String,
@@ -68,7 +71,22 @@ fn read_synthetic(dir: &Path) -> Vec<Entry> {
 fn synthetic_vectors() {
     let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/vectors");
     let rows = read_synthetic(&dir);
-    assert_eq!(rows.len(), 98);
+    // Every entry of the JSON was read, and every vector file is listed in it, so
+    // adding a vector means adding its file and its entry and nothing else.
+    let json = fs::read_to_string(dir.join("synthetic.json")).unwrap();
+    assert_eq!(rows.len(), json.matches("\"id\":").count());
+    for f in fs::read_dir(&dir).unwrap() {
+        let name = f.unwrap().file_name().to_string_lossy().to_string();
+        if name.ends_with(".bin") && !NOT_IN_JSON.contains(&name.as_str()) {
+            assert!(
+                rows.iter().any(|e| e.file == name),
+                "{name} is not in synthetic.json"
+            );
+        }
+    }
+    let count = |what: &str| rows.iter().filter(|e| e.expect == what).count();
+    let expected = (count("decode"), count("reject"), count("unspecified"));
+    assert_eq!(expected.0 + expected.1 + expected.2, rows.len());
     let (mut decoded, mut rejected, mut unspecified) = (0, 0, 0);
     for e in rows {
         let data = fs::read(dir.join(&e.file)).unwrap();
@@ -89,7 +107,10 @@ fn synthetic_vectors() {
             other => panic!("unknown expectation {other}"),
         }
     }
-    assert_eq!((decoded, rejected, unspecified), (87, 10, 1));
+    assert_eq!((decoded, rejected, unspecified), expected);
+    eprintln!(
+        "synthetic vectors: {decoded} decoded, {rejected} rejected, {unspecified} unspecified"
+    );
 }
 
 /// Aligned prefixes (spec 1.7) decode to the first bytes of the full output.

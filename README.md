@@ -51,8 +51,8 @@ cargo run --release --example bench -- /path/to/corpus
 ```
 
 `tests/vectors/` holds the synthetic vectors (generated, contain no game data) with an `expect` field
-per entry: 87 must decode to their SHA-256, 10 must be rejected, 1 (an unaligned prefix) is
-unspecified and only must not panic. The aligned-prefix vectors test the prefix rule. `syn-nested-rle-work*.bin` hold RLE arrays whose nested work is longer than their output (`tests/nested_rle.rs`). The corpus is game data and is never committed.
+per entry: `decode` (must decode to its SHA-256), `reject` (must be refused) or `unspecified` (an
+unaligned prefix that only must not panic). The aligned-prefix vectors test the prefix rule. `syn-nested-rle-work*.bin` hold RLE arrays whose nested work is longer than their output (`tests/nested_rle.rs`). The corpus is game data and is never committed.
 
 ## Licence
 
