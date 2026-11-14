@@ -5,8 +5,10 @@
 
 #![allow(dead_code)]
 
+pub mod alloc;
 pub mod enc;
 pub mod lz;
+pub mod vectors;
 
 /// Small deterministic generator (xorshift64); tests seed it with fixed values.
 pub struct Rng(pub u64);
@@ -83,6 +85,16 @@ pub fn block(codec: u8, payload: &[u8]) -> Vec<u8> {
     let mut v = vec![0x8C, codec, (n >> 16) as u8, (n >> 8) as u8, n as u8];
     v.extend_from_slice(payload);
     v
+}
+
+/// RLE array (type 3) in the long header form.
+pub fn rle(out_len: usize, body: &[u8]) -> Vec<u8> {
+    long(3, out_len, body)
+}
+
+/// A Kraken block whose only sub-chunk is the given array (entropy-only form).
+pub fn stream(array: &[u8]) -> Vec<u8> {
+    block(0x06, array)
 }
 
 /// LZ sub-chunk: 3-byte header (LZ flag, mode, body size) and body.

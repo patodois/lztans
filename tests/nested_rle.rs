@@ -4,6 +4,9 @@
 //! bytes), not by the output size: fill changes consume work without emitting
 //! output. Every command still has to fit in the output that remains.
 
+mod common;
+
+use common::{rle, stream};
 use sha2::{Digest, Sha256};
 use std::fs;
 use std::path::PathBuf;
@@ -22,25 +25,6 @@ fn sha(data: &[u8]) -> String {
         .iter()
         .map(|b| format!("{b:02x}"))
         .collect()
-}
-
-/// A type-3 (RLE) array in the long header form.
-fn rle(out_len: usize, body: &[u8]) -> Vec<u8> {
-    assert!(body.len() < out_len && out_len <= 1 << 18);
-    let d = out_len - 1;
-    let c = ((d & 0x3FFF) << 18) | body.len();
-    let mut v = vec![0x30 | (d >> 14) as u8];
-    v.extend_from_slice(&(c as u32).to_be_bytes());
-    v.extend_from_slice(body);
-    v
-}
-
-/// A Kraken block whose only sub-chunk is the given array (entropy-only form).
-fn stream(array: &[u8]) -> Vec<u8> {
-    let n = array.len() - 1;
-    let mut v = vec![0x8C, 0x06, (n >> 16) as u8, (n >> 8) as u8, n as u8];
-    v.extend_from_slice(array);
-    v
 }
 
 /// The inner array: 262,144 bytes of work made of 131,071 literals, a command

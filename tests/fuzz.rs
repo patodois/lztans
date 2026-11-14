@@ -6,49 +6,13 @@
 
 mod common;
 
-use std::alloc::{GlobalAlloc, Layout, System};
+use common::alloc;
 use std::fs;
-use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::path::Path;
 use std::time::{Duration, Instant};
 
-/// Allocator wrapper that tracks live and peak heap bytes.
-struct Counting;
-static LIVE: AtomicUsize = AtomicUsize::new(0);
-static PEAK: AtomicUsize = AtomicUsize::new(0);
-static BIGGEST: AtomicUsize = AtomicUsize::new(0);
-
-unsafe impl GlobalAlloc for Counting {
-    unsafe fn alloc(&self, l: Layout) -> *mut u8 {
-        let p = System.alloc(l);
-        if !p.is_null() {
-            let live = LIVE.fetch_add(l.size(), Ordering::Relaxed) + l.size();
-            PEAK.fetch_max(live, Ordering::Relaxed);
-            BIGGEST.fetch_max(l.size(), Ordering::Relaxed);
-        }
-        p
-    }
-    unsafe fn dealloc(&self, p: *mut u8, l: Layout) {
-        System.dealloc(p, l);
-        LIVE.fetch_sub(l.size(), Ordering::Relaxed);
-    }
-    unsafe fn realloc(&self, p: *mut u8, l: Layout, new: usize) -> *mut u8 {
-        let q = System.realloc(p, l, new);
-        if !q.is_null() {
-            if new >= l.size() {
-                let live = LIVE.fetch_add(new - l.size(), Ordering::Relaxed) + new - l.size();
-                PEAK.fetch_max(live, Ordering::Relaxed);
-            } else {
-                LIVE.fetch_sub(l.size() - new, Ordering::Relaxed);
-            }
-            BIGGEST.fetch_max(new, Ordering::Relaxed);
-        }
-        q
-    }
-}
-
 #[global_allocator]
-static ALLOC: Counting = Counting;
+static ALLOC: alloc::Counting = alloc::Counting;
 
 struct Rng(u64);
 impl Rng {
@@ -108,7 +72,7 @@ struct Seed {
 
 fn load_seeds() -> Vec<Seed> {
     let mut seeds = Vec::new();
-    let vec_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/vectors");
+    let vec_dir = common::vectors::dir();
     let mut names: Vec<_> = fs::read_dir(&vec_dir)
         .unwrap()
         .filter_map(|e| e.ok())
@@ -116,19 +80,10 @@ fn load_seeds() -> Vec<Seed> {
         .filter(|p| p.extension().is_some_and(|x| x == "bin"))
         .collect();
     names.sort();
-    // Sizes come from the JSON; a tiny scan is enough here.
-    let json = fs::read_to_string(vec_dir.join("synthetic.json")).unwrap();
+    // Sizes come from the JSON (the first entry of a file that has several).
     let mut sizes = std::collections::HashMap::new();
-    let mut f = String::new();
-    for line in json.lines() {
-        let line = line.trim().trim_end_matches(',');
-        if let Some(v) = line.strip_prefix("\"file\": ") {
-            f = v.trim_matches('"').to_string();
-        } else if let Some(v) = line.strip_prefix("\"decompressed_size\": ") {
-            sizes
-                .entry(f.clone())
-                .or_insert(v.parse::<usize>().unwrap());
-        }
+    for e in common::vectors::read_synthetic(&vec_dir) {
+        sizes.entry(e.file).or_insert(e.size);
     }
     for p in names {
         let name = p.file_name().unwrap().to_string_lossy().to_string();
@@ -174,15 +129,13 @@ struct Stats {
 
 fn run_case(data: &[u8], size: usize, st: &mut Stats, what: &str) {
     let mut out = vec![0u8; size];
-    let base = LIVE.load(Ordering::Relaxed);
-    PEAK.store(base, Ordering::Relaxed);
-    BIGGEST.store(0, Ordering::Relaxed);
+    let base = alloc::start();
     let t = Instant::now();
     let r = lztans::decode(data, &mut out);
     let el = t.elapsed();
     st.slowest = st.slowest.max(el);
-    st.peak = st.peak.max(PEAK.load(Ordering::Relaxed) - base);
-    st.biggest = st.biggest.max(BIGGEST.load(Ordering::Relaxed));
+    st.peak = st.peak.max(alloc::peak_above(base));
+    st.biggest = st.biggest.max(alloc::biggest());
     st.cases += 1;
     if r.is_ok() {
         st.ok += 1;

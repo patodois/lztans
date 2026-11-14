@@ -5,67 +5,19 @@
 
 mod common;
 
-use std::alloc::{GlobalAlloc, Layout, System};
-use std::sync::atomic::{AtomicUsize, Ordering};
-
-struct Counting;
-static LIVE: AtomicUsize = AtomicUsize::new(0);
-static PEAK: AtomicUsize = AtomicUsize::new(0);
-
-unsafe impl GlobalAlloc for Counting {
-    unsafe fn alloc(&self, l: Layout) -> *mut u8 {
-        let p = System.alloc(l);
-        if !p.is_null() {
-            let live = LIVE.fetch_add(l.size(), Ordering::Relaxed) + l.size();
-            PEAK.fetch_max(live, Ordering::Relaxed);
-        }
-        p
-    }
-    unsafe fn dealloc(&self, p: *mut u8, l: Layout) {
-        System.dealloc(p, l);
-        LIVE.fetch_sub(l.size(), Ordering::Relaxed);
-    }
-    unsafe fn realloc(&self, p: *mut u8, l: Layout, new: usize) -> *mut u8 {
-        let q = System.realloc(p, l, new);
-        if !q.is_null() {
-            LIVE.fetch_sub(l.size(), Ordering::Relaxed);
-            let live = LIVE.fetch_add(new, Ordering::Relaxed) + new;
-            PEAK.fetch_max(live, Ordering::Relaxed);
-        }
-        q
-    }
-}
+use common::{alloc, rle, stream};
 
 #[global_allocator]
-static ALLOC: Counting = Counting;
-
-/// Type-3 array, long header form.
-fn rle(out_len: usize, body: &[u8]) -> Vec<u8> {
-    assert!(body.len() < out_len && out_len <= 1 << 18);
-    let d = out_len - 1;
-    let c = ((d & 0x3FFF) << 18) | body.len();
-    let mut v = vec![0x30 | (d >> 14) as u8];
-    v.extend_from_slice(&(c as u32).to_be_bytes());
-    v.extend_from_slice(body);
-    v
-}
-
-fn stream(array: &[u8]) -> Vec<u8> {
-    let n = array.len() - 1;
-    let mut v = vec![0x8C, 0x06, (n >> 16) as u8, (n >> 8) as u8, n as u8];
-    v.extend_from_slice(array);
-    v
-}
+static ALLOC: alloc::Counting = alloc::Counting;
 
 /// Heap bytes in use at the peak while decoding, above what was live before, with a
 /// destination buffer that is allocated before the measurement starts.
 fn peak_of(data: &[u8], size: usize) -> (usize, bool, bool) {
     // One canary byte after the destination: nothing may write past `size`.
     let mut buf = vec![0xEEu8; size + 1];
-    let base = LIVE.load(Ordering::Relaxed);
-    PEAK.store(base, Ordering::Relaxed);
+    let base = alloc::start();
     let ok = lztans::decode(data, &mut buf[..size]).is_ok();
-    let extra = PEAK.load(Ordering::Relaxed) - base;
+    let extra = alloc::peak_above(base);
     (extra, ok, buf[size] == 0xEE)
 }
 

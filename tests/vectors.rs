@@ -1,6 +1,9 @@
 //! Decodes the synthetic vectors (always) and the game-data corpus (when its
 //! directory is given in `LZTANS_CORPUS`) and compares SHA-256 digests.
 
+mod common;
+
+use common::vectors::read_synthetic;
 use sha2::{Digest, Sha256};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -16,60 +19,9 @@ fn sha(data: &[u8]) -> String {
 /// Vector files checked by `tests/nested_rle.rs` instead of `synthetic.json`.
 const NOT_IN_JSON: [&str; 2] = ["syn-nested-rle-work.bin", "syn-nested-rle-work-max.bin"];
 
-/// One synthetic entry: file, size, expectation, digest.
-struct Entry {
-    id: String,
-    file: String,
-    size: usize,
-    expect: String,
-    sha: Option<String>,
-}
-
-/// Minimal reader for the pretty-printed `synthetic.json`.
-fn read_synthetic(dir: &Path) -> Vec<Entry> {
-    let text = fs::read_to_string(dir.join("synthetic.json")).unwrap();
-    let mut out = Vec::new();
-    let (mut id, mut file, mut size, mut expect, mut digest) = (None, None, None, None, None);
-    for line in text.lines() {
-        let line = line.trim().trim_end_matches(',');
-        if let Some(v) = line.strip_prefix("\"id\": ") {
-            id = Some(v.trim_matches('"').to_string());
-        } else if let Some(v) = line.strip_prefix("\"file\": ") {
-            file = Some(v.trim_matches('"').to_string());
-        } else if let Some(v) = line.strip_prefix("\"decompressed_size\": ") {
-            size = Some(v.parse::<usize>().unwrap());
-        } else if let Some(v) = line.strip_prefix("\"expect\": ") {
-            expect = Some(v.trim_matches('"').to_string());
-        } else if let Some(v) = line.strip_prefix("\"sha256\": ") {
-            digest = Some(if v == "null" {
-                None
-            } else {
-                Some(v.trim_matches('"').to_string())
-            });
-        } else if line.starts_with('}') {
-            if let (Some(id), Some(file), Some(size), Some(expect), Some(sha)) = (
-                id.take(),
-                file.take(),
-                size.take(),
-                expect.take(),
-                digest.take(),
-            ) {
-                out.push(Entry {
-                    id,
-                    file,
-                    size,
-                    expect,
-                    sha,
-                });
-            }
-        }
-    }
-    out
-}
-
 #[test]
 fn synthetic_vectors() {
-    let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/vectors");
+    let dir = common::vectors::dir();
     let rows = read_synthetic(&dir);
     // Every entry of the JSON was read, and every vector file is listed in it, so
     // adding a vector means adding its file and its entry and nothing else.
@@ -116,7 +68,7 @@ fn synthetic_vectors() {
 /// Aligned prefixes (spec 1.7) decode to the first bytes of the full output.
 #[test]
 fn aligned_prefixes() {
-    let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/vectors");
+    let dir = common::vectors::dir();
     let data = fs::read(dir.join("syn-prefix-base.bin")).unwrap();
     let rows = read_synthetic(&dir);
     let full = rows
