@@ -36,8 +36,17 @@ let consumed = lztans::decode(&compressed, &mut out)?;
 
 The decoder was written from a prose description of the format (spec commit `03de3f4`) and a set of
 test vectors, by an implementer who did not read any existing decoder's source code. A reference decoder
-was used only as a black box: to produce expected hashes for the test vectors and to compare accept/reject
-behaviour on mutated inputs. Points where the description was unclear, and the assumption taken in each
+(the `oozextract` crate, run as a program) was used only as a black box: to produce expected hashes for
+the test vectors and to compare accept/reject behaviour on mutated inputs.
+
+The description came from an earlier, separate step with a different author. That author read the source
+of `oozextract` 0.5.6 (published under the MIT licence) as a reference for facts about the format,
+measured the streams of two games, and wrote the rules down as prose and arithmetic, without code. Before
+the description was handed over, a decoder written only from its words reproduced the reference's output
+on the test streams. The implementer of this crate never saw that source, and the description's author
+wrote none of this crate. Both are language models. The description is not published in this repository.
+
+Points where the description was unclear, and the assumption taken in each
 case, are recorded in
 [QUESTIONS.md](https://github.com/patodois/lztans/blob/main/QUESTIONS.md) and marked with
 `// SPEC-QUESTION:` in the code. The procedure cannot prove that nothing similar was in the authors'
