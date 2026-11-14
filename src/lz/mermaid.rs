@@ -1,7 +1,7 @@
 //! Mermaid / Selkie LZ sub-chunks.
 
 use super::{copy_delta, copy_match, copy_raw, raw_prefix, Place, Win};
-use crate::entropy::read_array;
+use crate::entropy::{read_array, Work};
 use crate::error::{corrupt, Error, Result};
 
 const PIECE: usize = 65536;
@@ -35,7 +35,13 @@ impl<'a> Cursor<'a> {
     }
 }
 
-pub(crate) fn decode(body: &[u8], mode: u32, out: &mut [u8], pl: &Place) -> Result<()> {
+pub(crate) fn decode(
+    body: &[u8],
+    mode: u32,
+    out: &mut [u8],
+    pl: &Place,
+    work: &mut Work,
+) -> Result<()> {
     if mode > 1 {
         return corrupt("mermaid: invalid mode");
     }
@@ -43,9 +49,9 @@ pub(crate) fn decode(body: &[u8], mode: u32, out: &mut [u8], pl: &Place) -> Resu
     let sub_len = pl.sub_len();
     let prefix = raw_prefix(body, out, pl)?;
     let mut pos = prefix;
-    let (lit, n) = read_array(&body[pos..], sub_len, 0)?;
+    let (lit, n) = read_array(&body[pos..], sub_len, 0, work)?;
     pos += n;
-    let (cmd, n) = read_array(&body[pos..], sub_len, 0)?;
+    let (cmd, n) = read_array(&body[pos..], sub_len, 0, work)?;
     pos += n;
     let mut cur = Cursor { data: body, pos };
     let split = if sub_len > PIECE {
@@ -60,9 +66,9 @@ pub(crate) fn decode(body: &[u8], mode: u32, out: &mut [u8], pl: &Place) -> Resu
     let n16 = cur.u16()?;
     let near: Vec<usize>;
     if n16 == 0xFFFF {
-        let (hi, n) = read_array(&body[cur.pos..], sub_len >> 1, 0)?;
+        let (hi, n) = read_array(&body[cur.pos..], sub_len >> 1, 0, work)?;
         cur.pos += n;
-        let (lo, n) = read_array(&body[cur.pos..], sub_len >> 1, 0)?;
+        let (lo, n) = read_array(&body[cur.pos..], sub_len >> 1, 0, work)?;
         cur.pos += n;
         if hi.len() != lo.len() {
             return corrupt("mermaid: near offset arrays differ in length");

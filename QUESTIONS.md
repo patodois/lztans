@@ -72,6 +72,16 @@ source where it lives), and what the oracle showed when it could be asked.
     the window position (output index minus the window base) of the
     sub-chunk's first byte. Consistent with all vectors including `syn-mermaid-far-ext-*`.
 
+13. **Total work of the arrays of one quantum (3.5 - 3.7).** A limit of the same kind as
+    items 8 and 9. The spec does not bound it, and nested RLE work makes it independent of
+    the output: an 11-byte RLE array can expand a nested array of 262,144 bytes to emit 16
+    bytes, and a concatenation can hold thousands of them (a valid 182 kB stream took 1.6 s
+    for one 256 KiB block). The code adds up the decoded size of every non-stored array of a
+    quantum, at every nesting level, and refuses the quantum with `Error::Corrupt` above
+    16 MiB (64 times the output of a block). Measured over the 648 corpus streams: at most
+    446,965 bytes in one quantum (0.43 MiB, Leviathan); the largest committed vector,
+    `syn-nested-rle-work-max.bin`, needs 262,271 bytes.
+
 ## Wording defects noticed (none blocking)
 
 * 3.3.1 new encoding: "ns == 256 gives X = 0" and the example in 10.2 agree, but

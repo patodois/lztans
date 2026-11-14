@@ -1,9 +1,9 @@
 //! RLE arrays (array type 3).
 
-use super::{read_array, MAX_ARRAY};
+use super::{read_array, Work, MAX_ARRAY};
 use crate::error::{corrupt, Result};
 
-pub(crate) fn decode(body: &[u8], out_len: usize, depth: u32) -> Result<Vec<u8>> {
+pub(crate) fn decode(body: &[u8], out_len: usize, depth: u32, work: &mut Work) -> Result<Vec<u8>> {
     if body.is_empty() {
         return corrupt("rle: empty body");
     }
@@ -16,7 +16,7 @@ pub(crate) fn decode(body: &[u8], out_len: usize, depth: u32) -> Result<Vec<u8>>
     // the output space that remains before it expands anything.
     let owned;
     let w: &[u8] = if body[0] != 0 {
-        let (arr, n) = read_array(body, MAX_ARRAY, depth + 1)?;
+        let (arr, n) = read_array(body, MAX_ARRAY, depth + 1, work)?;
         let mut v = arr.into_owned();
         v.reserve_exact(body.len() - n);
         v.extend_from_slice(&body[n..]);

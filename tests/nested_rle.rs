@@ -6,10 +6,12 @@
 
 mod common;
 
-use common::{rle, stream};
+use common::{block, long, rle, short, stream};
 use sha2::{Digest, Sha256};
 use std::fs;
 use std::path::PathBuf;
+
+const MAX_ARRAY: usize = 1 << 18;
 
 fn vector(name: &str) -> Vec<u8> {
     fs::read(
@@ -114,4 +116,45 @@ fn truncated_work_is_refused() {
     cut.truncate(cut.len() - 1);
     let (res, _) = run(&cut, 127);
     assert!(res.is_err());
+}
+
+/// An RLE array of 11 bytes that emits 16 zero bytes after expanding a nested
+/// array of 262,144 bytes and walking it as 131,072 fill changes.
+fn amplifier() -> Vec<u8> {
+    let mut body = long(3, MAX_ARRAY, &[0x01]);
+    body.extend_from_slice(&[0x00, 0x14]); // executed first: 16 copies of the fill byte (0)
+    short(3, 16, &body)
+}
+
+/// Nested type-5 concatenations over `amplifier()`, `fan[i]` parts per level.
+fn amplifier_tree(fan: &[usize]) -> (Vec<u8>, usize) {
+    if fan.is_empty() {
+        return (amplifier(), 16);
+    }
+    let (sub, sub_out) = amplifier_tree(&fan[1..]);
+    let mut body = vec![fan[0] as u8];
+    for _ in 0..fan[0] {
+        body.extend(&sub);
+    }
+    (long(5, sub_out * fan[0], &body), sub_out * fan[0])
+}
+
+/// Valid by the array grammar, but its arrays decode to 2^31 bytes in one quantum:
+/// refused by the work budget instead of costing seconds of CPU per block.
+#[test]
+fn work_amplification_is_refused() {
+    let one = amplifier();
+    assert_eq!(one.len(), 11);
+    // A few amplifiers are within the budget and decode.
+    let few = block(0x06, &long(5, 32, &[&[2u8][..], &one, &one].concat()));
+    let (res, out) = run(&few, 32);
+    assert_eq!(res, Ok(few.len()));
+    assert_eq!(out, vec![0u8; 32]);
+    // 16,384 of them in one quantum (two sub-chunks of 8,192) are not.
+    let (sub, sub_out) = amplifier_tree(&[2, 64, 64]);
+    assert_eq!(sub_out, 131_072);
+    let data = block(0x06, &[&sub[..], &sub[..]].concat());
+    assert_eq!(data.len(), 181_801);
+    let (res, _) = run(&data, 262_144);
+    assert!(matches!(res, Err(lztans::Error::Corrupt(_))), "{res:?}");
 }

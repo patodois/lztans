@@ -155,6 +155,7 @@ fn decode_payload(
 ) -> Result<()> {
     let mut q = 0usize;
     let mut d = 0usize;
+    let mut work = entropy::Work::new();
     while d < left {
         let sub_len = (left - d).min(SUBCHUNK);
         if payload.len() - q < 4 {
@@ -165,7 +166,7 @@ fn decode_payload(
             | usize::from(payload[q + 2]);
         let start = block_start + d;
         if h & 0x80_0000 == 0 {
-            let (arr, used) = entropy::read_array(&payload[q..], sub_len, 0)?;
+            let (arr, used) = entropy::read_array(&payload[q..], sub_len, 0, &mut work)?;
             if arr.len() != sub_len {
                 return Err(Error::Corrupt("entropy sub-chunk has the wrong size"));
             }
@@ -182,9 +183,9 @@ fn decode_payload(
                     end: start + sub_len,
                 };
                 match codec {
-                    Codec::Kraken => lz::kraken::decode(body, mode, dst, &pl)?,
-                    Codec::Mermaid => lz::mermaid::decode(body, mode, dst, &pl)?,
-                    Codec::Leviathan => lz::leviathan::decode(body, mode, dst, &pl)?,
+                    Codec::Kraken => lz::kraken::decode(body, mode, dst, &pl, &mut work)?,
+                    Codec::Mermaid => lz::mermaid::decode(body, mode, dst, &pl, &mut work)?,
+                    Codec::Leviathan => lz::leviathan::decode(body, mode, dst, &pl, &mut work)?,
                 }
             } else if n == sub_len && mode == 0 {
                 dst[start..start + sub_len].copy_from_slice(body);

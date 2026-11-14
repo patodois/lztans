@@ -1,6 +1,6 @@
 //! Multi-array container (shared by type-5 arrays and Leviathan sub-chunks).
 
-use super::read_array;
+use super::{read_array, Work};
 use crate::bits::{Mb, Mf};
 use crate::error::{corrupt, Error, Result};
 
@@ -12,6 +12,7 @@ pub(crate) fn read_sliced(
     n_out: usize,
     limit: usize,
     depth: u32,
+    work: &mut Work,
 ) -> Result<(Vec<Vec<u8>>, usize)> {
     if src.len() < 4 {
         return Err(Error::Truncated);
@@ -28,7 +29,7 @@ pub(crate) fn read_sliced(
         let mut outs = Vec::with_capacity(n_out);
         let mut left = limit;
         for _ in 0..n_out {
-            let (a, n) = read_array(&src[pos..], left, depth + 1)?;
+            let (a, n) = read_array(&src[pos..], left, depth + 1, work)?;
             left -= a.len();
             pos += n;
             outs.push(a.into_owned());
@@ -38,7 +39,7 @@ pub(crate) fn read_sliced(
     let mut sources: Vec<Vec<u8>> = Vec::with_capacity(n_in);
     let mut total = 0usize;
     for _ in 0..n_in {
-        let (a, n) = read_array(&src[pos..], limit - total, depth + 1)?;
+        let (a, n) = read_array(&src[pos..], limit - total, depth + 1, work)?;
         total += a.len();
         pos += n;
         sources.push(a.into_owned());
@@ -55,19 +56,19 @@ pub(crate) fn read_sliced(
     let exps: Vec<u8>;
     let n_exp: usize;
     if combined {
-        let (a, n) = read_array(&src[pos..], total, depth + 1)?;
+        let (a, n) = read_array(&src[pos..], total, depth + 1, work)?;
         pos += n;
         index = a.iter().map(|t| t & 15).collect();
         exps = a.iter().map(|t| t >> 4).collect();
         n_exp = index.len();
     } else {
-        let (a, n) = read_array(&src[pos..], total, depth + 1)?;
+        let (a, n) = read_array(&src[pos..], total, depth + 1, work)?;
         pos += n;
         if a.len() < n_out {
             return corrupt("sliced container: fewer intervals than output arrays");
         }
         n_exp = a.len() - n_out;
-        let (e, n2) = read_array(&src[pos..], n_exp, depth + 1)?;
+        let (e, n2) = read_array(&src[pos..], n_exp, depth + 1, work)?;
         pos += n2;
         if e.len() != n_exp {
             return corrupt("sliced container: exponent count");

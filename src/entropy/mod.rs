@@ -19,9 +19,39 @@ const MAX_DEPTH: u32 = 24;
 /// than the RLE's own output because fill changes consume work without emitting.
 pub(crate) const MAX_ARRAY: usize = 1 << 18;
 
+/// Largest total decoded size of the non-stored arrays of one quantum, counted at
+/// every nesting level (64 times the output of a block).
+// SPEC-QUESTION: the spec sets no such bound; nested RLE work lets a valid stream
+// cost far more than its output (QUESTIONS.md, item 13).
+pub(crate) const WORK_BUDGET: usize = 16 << 20;
+
+/// Decoded bytes of the non-stored arrays read so far in the current quantum.
+pub(crate) struct Work(usize);
+
+impl Work {
+    pub(crate) fn new() -> Self {
+        Work(0)
+    }
+
+    /// Count an array of `n` decoded bytes before it is decoded.
+    fn charge(&mut self, n: usize) -> Result<()> {
+        self.0 += n;
+        if self.0 > WORK_BUDGET {
+            return corrupt("arrays of one quantum decode to more than 16 MiB in total");
+        }
+        Ok(())
+    }
+}
+
 /// Decode one array from the start of `src`. `limit` is the largest decoded size
-/// the caller accepts. Returns the bytes and the number of input bytes used.
-pub(crate) fn read_array(src: &[u8], limit: usize, depth: u32) -> Result<(Cow<'_, [u8]>, usize)> {
+/// the caller accepts; `work` counts what the quantum has decoded so far. Returns
+/// the bytes and the number of input bytes used.
+pub(crate) fn read_array<'a>(
+    src: &'a [u8],
+    limit: usize,
+    depth: u32,
+    work: &mut Work,
+) -> Result<(Cow<'a, [u8]>, usize)> {
     if depth > MAX_DEPTH {
         return corrupt("arrays nested too deeply");
     }
@@ -78,18 +108,19 @@ pub(crate) fn read_array(src: &[u8], limit: usize, depth: u32) -> Result<(Cow<'_
         return corrupt("array larger than its limit");
     }
     let body = src.get(hdr..hdr + body_len).ok_or(Error::Truncated)?;
+    work.charge(out_len)?;
     let data = match ty {
         1 => tans::decode(body, out_len)?,
         2 => huffman::decode(body, out_len, false)?,
-        3 => rle::decode(body, out_len, depth)?,
+        3 => rle::decode(body, out_len, depth, work)?,
         4 => huffman::decode(body, out_len, true)?,
-        _ => read_concat(body, out_len, depth)?,
+        _ => read_concat(body, out_len, depth, work)?,
     };
     Ok((Cow::Owned(data), hdr + body_len))
 }
 
 /// Type-5 arrays: a list of concatenated arrays, or a sliced container.
-fn read_concat(body: &[u8], out_len: usize, depth: u32) -> Result<Vec<u8>> {
+fn read_concat(body: &[u8], out_len: usize, depth: u32, work: &mut Work) -> Result<Vec<u8>> {
     let b = *body.first().ok_or(Error::Truncated)?;
     let n = usize::from(b & 0x7F);
     if n < 2 || body.len() < 6 {
@@ -101,7 +132,7 @@ fn read_concat(body: &[u8], out_len: usize, depth: u32) -> Result<Vec<u8>> {
         let mut out: Vec<u8> = Vec::new();
         let mut pos = 1usize;
         for _ in 0..n {
-            let (a, used) = read_array(&body[pos..], out_len - out.len(), depth + 1)?;
+            let (a, used) = read_array(&body[pos..], out_len - out.len(), depth + 1, work)?;
             if out.capacity() == 0 {
                 out.reserve_exact(out_len);
             }
@@ -113,7 +144,7 @@ fn read_concat(body: &[u8], out_len: usize, depth: u32) -> Result<Vec<u8>> {
         }
         Ok(out)
     } else {
-        let (mut outs, used) = read_sliced(body, 1, out_len, depth)?;
+        let (mut outs, used) = read_sliced(body, 1, out_len, depth, work)?;
         let out = outs.pop().unwrap_or_default();
         if out.len() != out_len || used != body.len() {
             return corrupt("sliced container: size mismatch");

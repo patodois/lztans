@@ -35,7 +35,8 @@ The last two commands also run with Rust 1.88.0 in the MSRV job.
 - Do not consult existing decoder source; use reference decoders only as black boxes for outputs/verdicts.
 - The game-data corpus stays outside Git; set `LZTANS_CORPUS` to run its optional tests.
 - Preserve `#![forbid(unsafe_code)]`; malformed input returns an error rather than panicking.
-- Arrays are bounded at 256 KiB, sub-chunk output at 128 KiB and nesting at 24 levels.
+- Arrays are bounded at 256 KiB, sub-chunk output at 128 KiB, nesting at 24 levels, and the decoded
+  size of all arrays of one quantum at 16 MiB (`QUESTIONS.md`, item 13).
 - The caller provides the full output buffer; recorded working-memory measurements are not a tighter proven bound.
 - Unsupported LZNA, BitKnit and checksum-flagged blocks must return `Error::Unsupported`.
 

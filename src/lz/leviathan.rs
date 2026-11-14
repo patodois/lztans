@@ -1,7 +1,7 @@
 //! Leviathan LZ sub-chunks.
 
 use super::{copy_match, raw_prefix, read_side_streams, Place, Win};
-use crate::entropy::{read_array, read_sliced};
+use crate::entropy::{read_array, read_sliced, Work};
 use crate::error::{corrupt, Error, Result};
 use std::borrow::Cow;
 
@@ -97,7 +97,13 @@ impl<'a> Literals<'a> {
     }
 }
 
-pub(crate) fn decode(body: &[u8], mode: u32, out: &mut [u8], pl: &Place) -> Result<()> {
+pub(crate) fn decode(
+    body: &[u8],
+    mode: u32,
+    out: &mut [u8],
+    pl: &Place,
+    work: &mut Work,
+) -> Result<()> {
     if mode > 5 {
         return corrupt("leviathan: invalid mode");
     }
@@ -112,10 +118,10 @@ pub(crate) fn decode(body: &[u8], mode: u32, out: &mut [u8], pl: &Place) -> Resu
     } else {
         0
     };
-    let (oc, n) = read_array(&body[pos..], sub_len / 3, 0)?;
+    let (oc, n) = read_array(&body[pos..], sub_len / 3, 0, work)?;
     pos += n;
     let ox = if scale >= 2 {
-        let (a, n) = read_array(&body[pos..], sub_len / 3, 0)?;
+        let (a, n) = read_array(&body[pos..], sub_len / 3, 0, work)?;
         pos += n;
         if a.len() != oc.len() {
             return corrupt("leviathan: offset extras length");
@@ -124,12 +130,12 @@ pub(crate) fn decode(body: &[u8], mode: u32, out: &mut [u8], pl: &Place) -> Resu
     } else {
         None
     };
-    let (lc, n) = read_array(&body[pos..], sub_len / 5, 0)?;
+    let (lc, n) = read_array(&body[pos..], sub_len / 5, 0, work)?;
     pos += n;
 
     let arrays: Vec<Cow<'_, [u8]>> = match mode {
         0 | 1 => {
-            let (a, n) = read_array(&body[pos..], sub_len, 0)?;
+            let (a, n) = read_array(&body[pos..], sub_len, 0, work)?;
             pos += n;
             vec![a]
         }
@@ -139,7 +145,7 @@ pub(crate) fn decode(body: &[u8], mode: u32, out: &mut [u8], pl: &Place) -> Resu
                 3 => 4,
                 _ => 16,
             };
-            let (v, n) = read_sliced(&body[pos..], n_out, sub_len, 0)?;
+            let (v, n) = read_sliced(&body[pos..], n_out, sub_len, 0, work)?;
             pos += n;
             v.into_iter().map(Cow::Owned).collect()
         }
@@ -153,7 +159,7 @@ pub(crate) fn decode(body: &[u8], mode: u32, out: &mut [u8], pl: &Place) -> Resu
     // Commands: a single array or eight lanes.
     let cmd_first = *body.get(pos).ok_or(Error::Truncated)?;
     let lanes: Vec<Cow<'_, [u8]>> = if cmd_first & 0x80 == 0 {
-        let (a, n) = read_array(&body[pos..], sub_len, 0)?;
+        let (a, n) = read_array(&body[pos..], sub_len, 0, work)?;
         pos += n;
         vec![a]
     } else {
@@ -161,7 +167,7 @@ pub(crate) fn decode(body: &[u8], mode: u32, out: &mut [u8], pl: &Place) -> Resu
             return corrupt("leviathan: bad command lane marker");
         }
         pos += 1;
-        let (v, n) = read_sliced(&body[pos..], 8, sub_len, 0)?;
+        let (v, n) = read_sliced(&body[pos..], 8, sub_len, 0, work)?;
         pos += n;
         v.into_iter().map(Cow::Owned).collect()
     };

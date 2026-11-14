@@ -1,10 +1,16 @@
 //! Kraken LZ sub-chunks.
 
 use super::{copy_delta, copy_match, copy_raw, raw_prefix, read_side_streams, Place, Win};
-use crate::entropy::read_array;
+use crate::entropy::{read_array, Work};
 use crate::error::{corrupt, Error, Result};
 
-pub(crate) fn decode(body: &[u8], mode: u32, out: &mut [u8], pl: &Place) -> Result<()> {
+pub(crate) fn decode(
+    body: &[u8],
+    mode: u32,
+    out: &mut [u8],
+    pl: &Place,
+    work: &mut Work,
+) -> Result<()> {
     if mode > 1 {
         return corrupt("kraken: invalid mode");
     }
@@ -15,9 +21,9 @@ pub(crate) fn decode(body: &[u8], mode: u32, out: &mut [u8], pl: &Place) -> Resu
     if first & 0x80 != 0 {
         return corrupt("kraken: literal array with bit 7 set");
     }
-    let (lit, n) = read_array(&body[pos..], sub_len, 0)?;
+    let (lit, n) = read_array(&body[pos..], sub_len, 0, work)?;
     pos += n;
-    let (cmd, n) = read_array(&body[pos..], sub_len, 0)?;
+    let (cmd, n) = read_array(&body[pos..], sub_len, 0, work)?;
     pos += n;
     if body.len() - pos < 3 {
         return Err(Error::Truncated);
@@ -29,10 +35,10 @@ pub(crate) fn decode(body: &[u8], mode: u32, out: &mut [u8], pl: &Place) -> Resu
     } else {
         0
     };
-    let (oc, n) = read_array(&body[pos..], cmd.len(), 0)?;
+    let (oc, n) = read_array(&body[pos..], cmd.len(), 0, work)?;
     pos += n;
     let ox = if scale >= 2 {
-        let (a, n) = read_array(&body[pos..], oc.len(), 0)?;
+        let (a, n) = read_array(&body[pos..], oc.len(), 0, work)?;
         pos += n;
         if a.len() != oc.len() {
             return corrupt("kraken: offset extras length");
@@ -41,7 +47,7 @@ pub(crate) fn decode(body: &[u8], mode: u32, out: &mut [u8], pl: &Place) -> Resu
     } else {
         None
     };
-    let (lc, n) = read_array(&body[pos..], sub_len >> 2, 0)?;
+    let (lc, n) = read_array(&body[pos..], sub_len >> 2, 0, work)?;
     pos += n;
     let side = read_side_streams(&body[pos..], &oc, ox.as_deref(), scale, &lc)?;
 

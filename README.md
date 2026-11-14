@@ -11,7 +11,8 @@ let consumed = lztans::decode(&compressed, &mut out)?;
 
 * `#![forbid(unsafe_code)]`; malformed input returns `lztans::Error`, never panics.
 * Allocations are bounded by the sizes the stream's headers can prove: every array is at most
-  256 KiB, sub-chunks produce at most 128 KiB, and nesting is capped at 24 levels. Measured working
+  256 KiB, sub-chunks produce at most 128 KiB, nesting is capped at 24 levels, and the arrays of one
+  quantum may decode to at most 16 MiB in total (QUESTIONS.md, item 13). Measured working
   memory (heap above the caller's output buffer, `examples/peak.rs`): at most 376 KiB over all 648
   corpus streams, and at most about 0.3 MiB over several million mutated and random inputs
   (`tests/fuzz.rs`). No larger hostile case has been constructed, so no tighter worst-case figure is
