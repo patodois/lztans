@@ -85,16 +85,13 @@ pub(crate) fn decode(body: &[u8], mode: u32, out: &mut [u8], pl: &Place) -> Resu
         cur.pos += 2 * n16;
     }
     let t = cur.u24()?;
-    let (mut n1, mut n2) = (0usize, 0usize);
-    if t != 0 {
-        n1 = t >> 12;
-        n2 = t & 0xFFF;
-        if n1 == 4095 {
-            n1 = cur.u16()?;
-        }
-        if n2 == 4095 {
-            n2 = cur.u16()?;
-        }
+    let mut n1 = t >> 12;
+    let mut n2 = t & 0xFFF;
+    if n1 == 4095 {
+        n1 = cur.u16()?;
+    }
+    if n2 == 4095 {
+        n2 = cur.u16()?;
     }
     if sub_len <= PIECE && n2 != 0 {
         return corrupt("mermaid: second far-offset list in a single-piece sub-chunk");
